@@ -150,12 +150,15 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    /** @return the player's registered username, or null if not logged in */
+    /**
+     * @return the player's registered username, or null if not logged in */
     public String getPlayerName() { return playerName; }
     
-    /** @return the current game this player is in, or null if not in a game */
+    /**
+     * @return the current game this player is in, or null if not in a game */
     public Game getCurrentGame() { return currentGame; }
     
-    /** Sets the current game for this player */
+    /**
+     * Sets the current game for this player */
     public void setCurrentGame(Game game) { this.currentGame = game; }
 }
