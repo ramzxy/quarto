@@ -1,0 +1,86 @@
+
+================================ MODEL (Shared) ================================
+
+Game
+    The main game logic. Manages the board, pieces, players, and turns.
+    Validates moves, checks for win conditions, and notifies listeners.
+
+Board
+    Represents the 4x4 game board. Stores placed pieces and checks for
+    winning lines (4 pieces sharing a common trait).
+
+Piece
+    Represents one of the 16 Quarto pieces. Each piece has 4 boolean
+    properties: tall/short, solid/hollow, dark/light, round/square.
+
+Move
+    Represents a player's action: placing the current piece on a board
+    position and selecting the next piece for the opponent.
+
+GameListener (interface)
+    Callback interface for game events. Implemented by ClientHandler to
+    receive move notifications and game-over events.
+
+AbstractPlayer (abstract)
+    Base class for all player types. Defines determineMove() which
+    returns the player's chosen move given the current game state.
+
+================================ SERVER ================================
+
+Server
+    Entry point for the server. Accepts TCP connections on a port,
+    creates a ClientHandler for each client, and manages the client list.
+
+GameManager
+    Central coordinator. Handles username registration, matchmaking queue,
+    and active game tracking. Pairs players and creates games.
+
+ClientHandler
+    One per connected client. Reads protocol messages, validates them,
+    and dispatches to appropriate handlers. Implements GameListener to
+    forward game events to the client over the network.
+
+================================ CLIENT ================================
+
+ClientApplication
+    Entry point for the client. Creates the player, view, and GameClient,
+    then starts the connection.
+
+ServerConnection
+    Handles low-level socket I/O. Connects to the server, sends messages,
+    receives messages, and manages the connection lifecycle.
+
+GameClient
+    Main client orchestrator. Uses ServerConnection for network I/O,
+    AbstractPlayer for move decisions, and ClientView for display.
+    Manages the local game state and game loop.
+
+HumanPlayer (extends AbstractPlayer)
+    A player controlled by a human. When determineMove() is called,
+    it prompts the user via ClientView and returns their input.
+
+ComputerPlayer (extends AbstractPlayer)
+    An AI-controlled player. When determineMove() is called,
+    it delegates to a Strategy to compute the best move.
+
+ClientView (interface)
+    Interface for displaying the game and getting user input.
+    Allows different UI implementations (TUI, GUI).
+
+TUI (implements ClientView)
+    Text-based user interface. Displays the board in the console
+    and reads user input from stdin.
+
+================================ AI ================================
+
+Strategy (interface)
+    Interface for AI move computation. Takes the current game state
+    and returns the best move according to the strategy.
+
+RandomStrategy (implements Strategy)
+    Simple AI that picks a random valid move. Useful for testing.
+
+SmartStrategy (implements Strategy)
+    Advanced AI using minimax algorithm with alpha-beta pruning.
+    Evaluates positions and looks ahead multiple moves.
+
