@@ -51,6 +51,7 @@ classDiagram
             <<abstract>>
             -String name
             +determineMove(Game game)* Move
+            +getName() String
         }
     }
 
@@ -105,46 +106,71 @@ classDiagram
             +main(args)
         }
 
+        class ServerConnection {
+            -Socket socket
+            -BufferedReader in
+            -PrintWriter out
+            +connect(String ip, int port)
+            +sendMessage(String msg)
+            +readMessage() String
+            +close()
+            +isConnected() boolean
+        }
+
         class GameClient {
-            -Socket serverSocket
+            -ServerConnection connection
+            -AbstractPlayer localPlayer
             -Game localGame
             -ClientView view
-            +connect(ip, port)
+            +GameClient(AbstractPlayer player, ClientView view)
+            +start(String ip, int port)
             +handshake()
-            +startListenerLoop()
+            +gameLoop()
+            +requestMove() Move
+            +disconnect()
+        }
+
+        class HumanPlayer {
+            -ClientView view
+            +HumanPlayer(String name, ClientView view)
+            +determineMove(Game game) Move
+        }
+
+        class ComputerPlayer {
+            -Strategy strategy
+            +ComputerPlayer(String name, Strategy strategy)
+            +determineMove(Game game) Move
         }
 
         class ClientView {
             <<interface>>
             +displayGame(Game game)
-            +requestInput() String
+            +requestMove(Game game) Move
             +showMessage(String msg)
         }
 
         class TUI {
             +displayGame(Game game)
-            +requestInput() String
+            +requestMove(Game game) Move
+            +showMessage(String msg)
         }
     }
 
-    %% --- AI Components ---
+    %% --- AI Strategies ---
     namespace ai {
-        class AIClient {
-            -Strategy strategy
-            +run()
-        }
-
         class Strategy {
             <<interface>>
-            +computeMove(Board board) Move
+            +computeMove(Game game) Move
         }
 
         class RandomStrategy {
-            +computeMove(Board board) Move
+            +computeMove(Game game) Move
         }
 
         class SmartStrategy {
-            +computeMove(Board board) Move
+            -int maxDepth
+            +computeMove(Game game) Move
+            -minimax(Game game, int depth, boolean maximizing) int
         }
     }
 
@@ -166,13 +192,21 @@ classDiagram
 
     %% Client Relationships
     ClientApplication --> GameClient
+    GameClient *-- ServerConnection : uses for network
+    GameClient o-- AbstractPlayer : localPlayer
     GameClient o-- ClientView
     GameClient o-- Game
+
+    %% Player Inheritance (extends AbstractPlayer from model)
+    AbstractPlayer <|-- HumanPlayer
+    AbstractPlayer <|-- ComputerPlayer
+    HumanPlayer o-- ClientView : uses for input
+    ComputerPlayer o-- Strategy : delegates to
+
+    %% View Implementation
     ClientView <|.. TUI
 
-    %% AI Relationships
-    AIClient --|> GameClient : extends
-    AIClient o-- Strategy
+    %% Strategy Implementations
     Strategy <|.. RandomStrategy
     Strategy <|.. SmartStrategy
 ```
@@ -236,3 +270,63 @@ Handles all communication with a single connected client. Implements `GameListen
 | `GameManager.takenUsernames` | `ConcurrentHashMap.newKeySet()` or synchronized `HashSet` |
 | `GameManager.activeGames` | `CopyOnWriteArrayList` or synchronized list |
 | `ClientHandler.out` | Synchronize on `out` when sending messages to avoid interleaved output |
+
+---
+
+## Client System Documentation
+
+### `GameClient` Class
+
+The main client application that handles network communication and coordinates the local game state.
+
+| Method | Description |
+|--------|-------------|
+| `GameClient(AbstractPlayer, ClientView)` | Constructor that injects the player (human or AI) and view. Uses composition for flexibility. |
+| `connect(ip, port)` | Establishes a TCP connection to the server. |
+| `handshake()` | Performs the initial protocol handshake (e.g., sending `HELLO` and `LOGIN` messages). |
+| `startListenerLoop()` | Main loop that listens for incoming protocol messages from the server and dispatches them. |
+| `requestMove()` | When it's the local player's turn, delegates to `localPlayer.determineMove()` to get the move. |
+
+---
+
+### `HumanPlayer` Class
+
+A concrete player that gets moves from human input via the `ClientView`.
+
+| Method | Description |
+|--------|-------------|
+| `HumanPlayer(String, ClientView)` | Constructor that sets the player name and view for input. |
+| `determineMove(Game)` | Delegates to `view.requestMove()` to prompt the human user for their move. |
+
+---
+
+### `ComputerPlayer` Class
+
+A concrete player that uses an AI strategy to compute moves.
+
+| Method | Description |
+|--------|-------------|
+| `ComputerPlayer(String, Strategy)` | Constructor that sets the player name and AI strategy. |
+| `determineMove(Game)` | Delegates to `strategy.computeMove()` to get the AI-calculated move. |
+
+---
+
+### Design Pattern: Composition over Inheritance
+
+The client uses **composition** instead of inheritance for player types:
+
+```java
+// Human player client:
+AbstractPlayer player = new HumanPlayer("Alice", tuiView);
+GameClient client = new GameClient(player, tuiView);
+
+// AI player client (same GameClient class!):
+AbstractPlayer player = new ComputerPlayer("Bot", new SmartStrategy());
+GameClient client = new GameClient(player, tuiView);
+```
+
+**Benefits:**
+- `GameClient` doesn't need subclassing — same class works for human and AI
+- Easy to swap player implementations at runtime
+- `ComputerPlayer` doesn't inherit network code it doesn't need
+- Each class has a single responsibility
