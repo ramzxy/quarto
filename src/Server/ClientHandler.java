@@ -1,9 +1,8 @@
 package Server;
 
-import java.io.BufferedReader;
+import Game.*;
+import Protocol.PROTOCOL;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
@@ -11,21 +10,19 @@ import java.net.Socket;
  * Parses incoming protocol messages and dispatches to appropriate handlers.
  * Implements Runnable to run in its own thread.
  */
-public class ClientHandler implements Runnable {
-    private Socket client;
+public class ClientHandler implements Runnable, GameListener {
+    private ServerConnection connection;
     private GameManager gameManager;
     private String playerName;
     private Game currentGame;
-    private BufferedReader in;
-    private PrintWriter out;
 
     /**
      * Creates a new handler for a client connection.
      * @param client the client socket
      * @param gameManager the shared game manager instance
      */
-    public ClientHandler(Socket client, GameManager gameManager) {
-        this.client = client;
+    public ClientHandler(Socket client, GameManager gameManager) throws IOException {
+        this.connection = new ServerConnection(client);
         this.gameManager = gameManager;
     }
 
@@ -35,11 +32,8 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            out = new PrintWriter(client.getOutputStream(), true);
-
             String inputLine;
-            while ((inputLine = in.readLine()) != null) {
+            while ((inputLine = connection.readMessage()) != null) {
                 handleProtocolMessage(inputLine);
             }
         } catch (IOException e) {
@@ -61,7 +55,7 @@ public class ClientHandler implements Runnable {
         
         try {
             switch (command) {
-                case "LOGIN":
+                case PROTOCOL.LOGIN:
                     if (parts.length < 2) {
                         sendMessage("ERROR", "Username required");
                         return;
@@ -124,16 +118,10 @@ public class ClientHandler implements Runnable {
     /**
      * Sends a formatted protocol message to the client.
      * @param command the command name
-     * @param args optional arguments to append with ~ delimiter
+     * @param args optional arguments to append with separator
      */
     public void sendMessage(String command, String... args) {
-        String message = command;
-        if (args.length > 0) {
-            message += "~" + String.join("~", args);
-        }
-        synchronized (out) {
-            out.println(message);
-        }
+        connection.sendMessage(command, args);
     }
 
     /**
@@ -141,13 +129,7 @@ public class ClientHandler implements Runnable {
      */
     public void disconnect() {
         gameManager.handleDisconnect(this);
-        try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (client != null) client.close();
-        } catch (IOException e) {
-            // Ignore close errors
-        }
+        connection.close();
     }
 
     /**
@@ -161,4 +143,14 @@ public class ClientHandler implements Runnable {
     /**
      * Sets the current game for this player */
     public void setCurrentGame(Game game) { this.currentGame = game; }
+
+    @Override
+    public void moveMade(Move move) {
+        sendMessage(PROTOCOL.OPPONENTMOVE, String.valueOf(move.getBoardIndex()), String.valueOf(move.getPieceId()));
+    }
+
+    @Override
+    public void gameFinished(Game game) {
+        // TODO: determine win/lose/tie and send appropriate message
+    }
 }

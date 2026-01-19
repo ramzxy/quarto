@@ -2,7 +2,7 @@ package Game;
 
 public interface GameListener {
 
-    public String moveMade(Move move);
+    void moveMade(Move move);
 
-    public String gameFinished(Game game);
+    void gameFinished(Game game);
 }
