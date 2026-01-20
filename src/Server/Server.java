@@ -17,6 +17,7 @@ public class Server {
     private volatile boolean running = false;
     private List<ClientHandler> clients;
     private Scanner input = new Scanner(System.in);
+    private GameManager gameManager;
     
     /**
      * Creates a new server instance.
@@ -25,6 +26,7 @@ public class Server {
     public Server(int port) {
         this.port = port;
         this.clients = new ArrayList<>();
+        this.gameManager = new GameManager();
     }
 
     /**
@@ -59,7 +61,7 @@ public class Server {
                 Socket client = server.accept();
                 System.out.println("New client connected" + client.getInetAddress().getHostAddress());
 
-                ClientHandler clientHandler = new ClientHandler(client, this);
+                ClientHandler clientHandler = new ClientHandler(client, gameManager);
                 clients.add(clientHandler);
                 new Thread(clientHandler).start();
 

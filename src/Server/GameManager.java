@@ -1,38 +1,37 @@
 package Server;
 
 import Game.Game;
+import Protocol.PROTOCOL;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Central coordinator for matchmaking, username management, and active game tracking.
  * Handles player queuing, game creation, and cleanup on disconnection.
  */
 public class GameManager {
-    private BlockingQueue<ClientHandler> waitingQueue;
-    private Set<String> takenUsernames;
+    private Queue<ClientHandler> waitingQueue;
+    private Map<String, ClientHandler> loggedInUsers;
     private List<Game> activeGames;
-    private Map<ClientHandler, ClientHandler> rematchRequests;
 
     public GameManager() {
-        this.waitingQueue = new ArrayBlockingQueue<>(10);
-        this.takenUsernames = new HashSet<>();
-        this.activeGames = new ArrayList<>();
-        this.rematchRequests = new HashMap<>();
+        this.waitingQueue = new ConcurrentLinkedQueue<>();
+        this.loggedInUsers = Collections.synchronizedMap(new HashMap<>());
+        this.activeGames = Collections.synchronizedList(new ArrayList<>());
     }
 
     /**
-     * Attempts to register a unique username.
+     * Attempts to register a unique username for a client.
      * @param name the desired username
+     * @param client the client handler
      * @return true if registration succeeded, false if username is taken
      */
-    public boolean registerUsername(String name) {
-        synchronized (takenUsernames) {
-            if (takenUsernames.contains(name)) {
+    public boolean registerUsername(String name, ClientHandler client) {
+        synchronized (loggedInUsers) {
+            if (loggedInUsers.containsKey(name)) {
                 return false;
             }
-            takenUsernames.add(name);
+            loggedInUsers.put(name, client);
             return true;
         }
     }
@@ -42,32 +41,17 @@ public class GameManager {
      * @param name the username to release
      */
     public void releaseUsername(String name) {
-        synchronized (takenUsernames) {
-            takenUsernames.remove(name);
+        if (name != null) {
+            loggedInUsers.remove(name);
         }
     }
 
     /**
-     * Handles a rematch request. If both players request each other, starts a new game.
-     * @param requester the client requesting a rematch
-     * @param opponent the intended opponent
+     * Returns a list of all currently logged-in usernames.
+     * @return list of usernames
      */
-    public void requestRematch(ClientHandler requester, ClientHandler opponent) {
-        if (rematchRequests.get(opponent) == requester) {
-            rematchRequests.remove(opponent);
-            createGame(requester, opponent);
-        } else {
-            rematchRequests.put(requester, opponent);
-            opponent.sendMessage("REMATCH_REQUEST", requester.getPlayerName());
-        }
-    }
-
-    /**
-     * Declines any pending rematch request from this client.
-     * @param decliner the client declining
-     */
-    public void declineRematch(ClientHandler decliner) {
-        rematchRequests.remove(decliner);
+    public List<String> getLoggedInUsers() {
+        return new ArrayList<>(loggedInUsers.keySet());
     }
 
     /**
@@ -102,8 +86,9 @@ public class GameManager {
     }
 
     /**
-     * Creates a new game between two players, notifies them, and tracks the game.
-     * @param p1 the first player
+     * Creates a new game between two players, notifies them with NEWGAME, and tracks the game.
+     * First player listed makes the first move.
+     * @param p1 the first player (will move first)
      * @param p2 the second player
      * @return the newly created Game instance
      */
@@ -111,31 +96,44 @@ public class GameManager {
         Game game = new Game(p1, p2);
         activeGames.add(game);
         
-        p1.setCurrentGame(game);
-        p2.setCurrentGame(game);
+        p1.startGame(game);
+        p2.startGame(game);
         
-        p1.sendMessage("GAMESTART", p2.getPlayerName());
-        p2.sendMessage("GAMESTART", p1.getPlayerName());
+        // NEWGAME~player1~player2 - first player moves first
+        p1.sendMessage(PROTOCOL.NEWGAME, p1.getPlayerName(), p2.getPlayerName());
+        p2.sendMessage(PROTOCOL.NEWGAME, p1.getPlayerName(), p2.getPlayerName());
         
-        p1.sendMessage("YOURTURN");
+        // No YOURTURN - first player in NEWGAME goes first (implicit)
         
         return game;
     }
 
     /**
-     * Removes a game from the active games list.
+     * Ends a game and sends GAMEOVER to both players.
      * @param game the game to end
+     * @param reason the reason (VICTORY, DRAW, DISCONNECT)
+     * @param winner the winner's username (null for DRAW)
      */
-    public void endGame(Game game) {
+    public void endGame(Game game, String reason, String winner) {
         activeGames.remove(game);
+        
+        // Get both players from the game
+        // TODO: Need to get players from game object
     }
 
     /**
-     * Handles all cleanup when a client disconnects: removes from queue and releases username.
+     * Handles all cleanup when a client disconnects.
      * @param client the disconnected client
      */
     public void handleDisconnect(ClientHandler client) {
         removeFromQueue(client);
         releaseUsername(client.getPlayerName());
+        
+        // If in a game, end it with DISCONNECT reason
+        Game game = client.getCurrentGame();
+        if (game != null) {
+            activeGames.remove(game);
+            // TODO: Notify opponent with GAMEOVER~DISCONNECT~opponentName
+        }
     }
 }
