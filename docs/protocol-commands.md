@@ -1,12 +1,12 @@
-# Protocol Commands Documentation
+# Quarto Protocol Commands Documentation
 
-> Comprehensive documentation of all network protocol commands used in the multiplayer board game project.
+> Official protocol specification for the Quarto multiplayer board game (TCS Module 2, 2025/2026).
 
 ---
 
 ## Protocol Overview
 
-All messages are transmitted as plain text, with commands and arguments separated by the tilde (`~`) character. Messages are sent line-by-line over TCP sockets.
+All messages are plain text, with commands and arguments separated by a tilde (`~`). Commands are terminated by a newline (`\n`).
 
 **Message Format:**
 
@@ -14,334 +14,296 @@ All messages are transmitted as plain text, with commands and arguments separate
 COMMAND~arg1~arg2~...
 ```
 
-**Separator:** `~` (defined in `Protocol.PROTOCOL.SEPARATOR`)
+**Argument Notation:**
+
+- `<arg>` — required
+- `[arg]` — optional
+- `[arg]*` — zero or more
+- `[arg]+` — one or more
+
+---
+
+## Core Commands
+
+### Handshake Sequence
+
+The handshake must complete before any other commands. **Client initiates.**
+
+```
+Client                          Server
+  |                               |
+  |--- HELLO~desc[~extensions] -->|
+  |<-- HELLO~desc[~extensions] ---|
+  |--- LOGIN~username ----------->|
+  |<-- LOGIN (or ALREADYLOGGEDIN)-|
+  |                               |
+     Handshake Complete ✓
+```
 
 ---
 
 ## Client → Server Commands
 
-These commands are sent from the client to the server.
+### `HELLO`
+
+Initiates handshake. Sent immediately after connecting.
+
+| Property      | Details                                                           |
+| ------------- | ----------------------------------------------------------------- |
+| **Format**    | `HELLO~<description>[~extension]*`                                |
+| **Arguments** | `description`: human-readable client name                         |
+|               | `extension`: optional supported extensions (e.g., `CHAT`, `RANK`) |
+
+**Examples:**
+
+```
+HELLO~MyClient
+HELLO~Alice's Client~CHAT~RANK
+```
+
+---
 
 ### `LOGIN`
 
-Registers a player with a unique username on the server.
+Claims a username after the server's HELLO response.
 
-| Property             | Details                                                    |
-| -------------------- | ---------------------------------------------------------- |
-| **Direction**        | Client → Server                                            |
-| **Format**           | `LOGIN~<username>`                                         |
-| **Arguments**        | `username` (required): The desired username for the player |
-| **Preconditions**    | Client must be connected to the server                     |
-| **Success Response** | `WELCOME~<username>`                                       |
-| **Error Responses**  | `ERROR~Username required` (if username missing)            |
-|                      | `ERROR~Username already taken` (if username in use)        |
+| Property     | Details                                                 |
+| ------------ | ------------------------------------------------------- |
+| **Format**   | `LOGIN~<username>`                                      |
+| **Response** | `LOGIN` (success) or `ALREADYLOGGEDIN` (username taken) |
 
-**Example:**
+**Examples:**
 
 ```
-LOGIN~Player1
+LOGIN~Alice
+LOGIN~Johnny Flodder
 ```
+
+---
+
+### `LIST`
+
+Requests list of all logged-in users.
+
+| Property     | Details            |
+| ------------ | ------------------ |
+| **Format**   | `LIST`             |
+| **Response** | `LIST[~username]*` |
 
 ---
 
 ### `QUEUE`
 
-Adds the player to the matchmaking queue to find an opponent.
+Joins or leaves the matchmaking queue. Sending again toggles queue status.
 
-| Property             | Details                                                                        |
-| -------------------- | ------------------------------------------------------------------------------ |
-| **Direction**        | Client → Server                                                                |
-| **Format**           | `QUEUE`                                                                        |
-| **Arguments**        | None                                                                           |
-| **Preconditions**    | Player must be logged in (have sent a successful `LOGIN`)                      |
-| **Success Response** | `QUEUED`                                                                       |
-| **Error Response**   | `ERROR~Must login first`                                                       |
-| **Side Effects**     | Server attempts to match players; if 2+ players are waiting, a game is created |
+| Property   | Details                                                  |
+| ---------- | -------------------------------------------------------- |
+| **Format** | `QUEUE`                                                  |
+| **Note**   | No server response. Server sends `NEWGAME` when matched. |
+
+---
+
+### `MOVE`
+
+Submits a move during the game. Only valid on your turn.
+
+| Property       | Details                                                   |
+| -------------- | --------------------------------------------------------- |
+| **First Move** | `MOVE~<pieceId>` — give a piece (0-15) to opponent        |
+| **Subsequent** | `MOVE~<position>~<pieceId>` — place piece, then give next |
+
+**Position/Piece Values:**
+
+- `0-15`: Valid board position or piece ID
+- `16`: Claim Quarto (M only)
+- `17`: Place last piece without claiming Quarto (final move only)
+
+**Board Layout (positions 0-15):**
+
+```
+ 3 |  2 |  7 |  1
+---+----+----+---
+ 6 | 11 |  0 |  5
+---+----+----+---
+10 | 15 |  4 |  9
+---+----+----+---
+14 |  8 | 13 | 12
+```
+
+**Piece Encoding (0-15):**
+
+| Code | Color | Size  | Shape  | Fill   |
+| ---- | ----- | ----- | ------ | ------ |
+| 0    | light | small | round  | solid  |
+| 1    | dark  | small | round  | solid  |
+| 2    | light | large | round  | solid  |
+| 3    | dark  | large | round  | solid  |
+| 4    | light | small | square | solid  |
+| 5    | dark  | small | square | solid  |
+| 6    | light | large | square | solid  |
+| 7    | dark  | large | square | solid  |
+| 8    | light | small | round  | hollow |
+| 9    | dark  | small | round  | hollow |
+| 10   | light | large | round  | hollow |
+| 11   | dark  | large | round  | hollow |
+| 12   | light | small | square | hollow |
+| 13   | dark  | small | square | hollow |
+| 14   | light | large | square | hollow |
+| 15   | dark  | large | square | hollow |
+
+---
+
+## Server → Client Commands
+
+### `HELLO`
+
+Server response to client's HELLO.
+
+| Property   | Details                            |
+| ---------- | ---------------------------------- |
+| **Format** | `HELLO~<description>[~extension]*` |
+
+---
+
+### `LOGIN`
+
+Confirms successful login. Marks end of handshake.
+
+| Property   | Details |
+| ---------- | ------- |
+| **Format** | `LOGIN` |
+
+---
+
+### `ALREADYLOGGEDIN`
+
+Username is already taken.
+
+| Property   | Details           |
+| ---------- | ----------------- |
+| **Format** | `ALREADYLOGGEDIN` |
+
+---
+
+### `LIST`
+
+Returns all logged-in users.
+
+| Property   | Details            |
+| ---------- | ------------------ |
+| **Format** | `LIST[~username]*` |
+
+**Examples:**
+
+```
+LIST~Alice
+LIST~Charlie~Alice~Bob
+```
+
+---
+
+### `NEWGAME`
+
+Notifies players a game has started. First player listed moves first.
+
+| Property   | Details                       |
+| ---------- | ----------------------------- |
+| **Format** | `NEWGAME~<player1>~<player2>` |
 
 **Example:**
 
 ```
-QUEUE
+NEWGAME~Alice~Bob
 ```
 
 ---
 
 ### `MOVE`
 
-Submits a move during an active game.
+Broadcasts a move to all players in the game.
 
-| Property             | Details                                                          |
-| -------------------- | ---------------------------------------------------------------- |
-| **Direction**        | Client → Server                                                  |
-| **Format**           | `MOVE~<boardIndex>~<pieceId>`                                    |
-| **Arguments**        | `boardIndex` (required): The board position index (integer)      |
-|                      | `pieceId` (required): The ID of the piece to place/use (integer) |
-| **Preconditions**    | Player must be in an active game; it must be the player's turn   |
-| **Success Response** | Move is validated and applied; opponent receives `OPPONENTMOVE`  |
-| **Error Responses**  | `ERROR~Invalid move format` (if arguments missing)               |
-|                      | `ERROR~Not in a game` (if player not in a game)                  |
+| Property   | Details                      |
+| ---------- | ---------------------------- |
+| **Format** | `MOVE~<N>` or `MOVE~<N>~<M>` |
 
-**Example:**
+---
+
+### `GAMEOVER`
+
+Game has ended.
+
+| Property    | Details                         |
+| ----------- | ------------------------------- |
+| **Format**  | `GAMEOVER~<reason>[~winner]`    |
+| **Reasons** | `VICTORY`, `DRAW`, `DISCONNECT` |
+
+**Examples:**
 
 ```
-MOVE~5~3
+GAMEOVER~VICTORY~Alice
+GAMEOVER~DRAW
+GAMEOVER~DISCONNECT~Bob
 ```
-
----
-
-### `REMATCH_REQUEST`
-
-Requests a rematch with the previous opponent after a game ends.
-
-| Property             | Details                                                               |
-| -------------------- | --------------------------------------------------------------------- |
-| **Direction**        | Client → Server                                                       |
-| **Format**           | `REMATCH_REQUEST`                                                     |
-| **Arguments**        | None (opponent is determined from the previous game)                  |
-| **Preconditions**    | Game must have just ended                                             |
-| **Success Response** | If opponent also requested: new game starts with `GAMESTART` messages |
-| **Side Effects**     | Server notifies opponent of rematch request                           |
-
-**Example:**
-
-```
-REMATCH_REQUEST
-```
-
----
-
-### `REMATCH_ACCEPT`
-
-Accepts a pending rematch request from an opponent.
-
-| Property             | Details                                              |
-| -------------------- | ---------------------------------------------------- |
-| **Direction**        | Client → Server                                      |
-| **Format**           | `REMATCH_ACCEPT`                                     |
-| **Arguments**        | None                                                 |
-| **Preconditions**    | Must have received a `REMATCH_REQUEST` from opponent |
-| **Success Response** | New game starts; both players receive `GAMESTART`    |
-
----
-
-### `REMATCH_DENY`
-
-Declines a pending rematch request.
-
-| Property          | Details                                              |
-| ----------------- | ---------------------------------------------------- |
-| **Direction**     | Client → Server                                      |
-| **Format**        | `REMATCH_DENY`                                       |
-| **Arguments**     | None                                                 |
-| **Preconditions** | Must have received a `REMATCH_REQUEST` from opponent |
-| **Side Effects**  | Rematch request is cleared                           |
-
----
-
-### `CHAT`
-
-Sends a chat message (if chat extension is implemented).
-
-| Property          | Details                                        |
-| ----------------- | ---------------------------------------------- |
-| **Direction**     | Client → Server                                |
-| **Format**        | `CHAT~<message>`                               |
-| **Arguments**     | `message` (required): The text content to send |
-| **Preconditions** | Player must be logged in                       |
-| **Note**          | This is an optional protocol extension         |
-
-**Example:**
-
-```
-CHAT~Hello, good luck!
-```
-
----
-
-### `JOIN` / `LEAVE`
-
-Queue management commands (may be used for named queues extension).
-
-| Command | Format             | Description                                           |
-| ------- | ------------------ | ----------------------------------------------------- |
-| `JOIN`  | `JOIN~<queueName>` | Join a named queue to play against specific opponents |
-| `LEAVE` | `LEAVE`            | Leave the current queue                               |
-
----
-
-## Server → Client Commands
-
-These commands are sent from the server to the client.
-
-### `WELCOME`
-
-Confirms successful login with the registered username.
-
-| Property       | Details                                          |
-| -------------- | ------------------------------------------------ |
-| **Direction**  | Server → Client                                  |
-| **Format**     | `WELCOME~<username>`                             |
-| **Arguments**  | `username`: The successfully registered username |
-| **Sent After** | Successful `LOGIN` command                       |
-
-**Example:**
-
-```
-WELCOME~Player1
-```
-
----
-
-### `QUEUED`
-
-Confirms the player has been added to the matchmaking queue.
-
-| Property       | Details                    |
-| -------------- | -------------------------- |
-| **Direction**  | Server → Client            |
-| **Format**     | `QUEUED`                   |
-| **Arguments**  | None                       |
-| **Sent After** | Successful `QUEUE` command |
-
----
-
-### `GAMESTART`
-
-Notifies the player that a game has begun.
-
-| Property       | Details                                      |
-| -------------- | -------------------------------------------- |
-| **Direction**  | Server → Client                              |
-| **Format**     | `GAMESTART~<opponentName>`                   |
-| **Arguments**  | `opponentName`: The username of the opponent |
-| **Sent After** | Two players are matched from the queue       |
-| **Note**       | Both players receive this message            |
-
-**Example:**
-
-```
-GAMESTART~Player2
-```
-
----
-
-### `YOURTURN`
-
-Indicates it is the player's turn to make a move.
-
-| Property       | Details                                                |
-| -------------- | ------------------------------------------------------ |
-| **Direction**  | Server → Client                                        |
-| **Format**     | `YOURTURN`                                             |
-| **Arguments**  | None                                                   |
-| **Sent After** | Game starts (to first player) or after opponent's move |
-
----
-
-### `OPPONENTMOVE`
-
-Notifies the player of their opponent's move.
-
-| Property       | Details                                                |
-| -------------- | ------------------------------------------------------ |
-| **Direction**  | Server → Client                                        |
-| **Format**     | `OPPONENTMOVE~<boardIndex>~<pieceId>`                  |
-| **Arguments**  | `boardIndex`: The board position of the move (integer) |
-|                | `pieceId`: The piece ID used in the move (integer)     |
-| **Sent After** | Opponent makes a valid move                            |
-
-**Example:**
-
-```
-OPPONENTMOVE~5~3
-```
-
----
-
-### `WIN`
-
-Notifies the player they have won the game.
-
-| Property       | Details                               |
-| -------------- | ------------------------------------- |
-| **Direction**  | Server → Client                       |
-| **Format**     | `WIN`                                 |
-| **Arguments**  | None                                  |
-| **Sent After** | Game ends with this player victorious |
-
----
-
-### `LOSE`
-
-Notifies the player they have lost the game.
-
-| Property       | Details                            |
-| -------------- | ---------------------------------- |
-| **Direction**  | Server → Client                    |
-| **Format**     | `LOSE`                             |
-| **Arguments**  | None                               |
-| **Sent After** | Game ends with opponent victorious |
-
----
-
-### `TIE`
-
-Notifies the player the game ended in a draw.
-
-| Property       | Details                           |
-| -------------- | --------------------------------- |
-| **Direction**  | Server → Client                   |
-| **Format**     | `TIE`                             |
-| **Arguments**  | None                              |
-| **Sent After** | Game ends in a draw/tie condition |
 
 ---
 
 ### `ERROR`
 
-Notifies the player of an error condition.
+Protocol violation occurred.
 
-| Property            | Details                                                                                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Direction**       | Server → Client                                                                                                                                        |
-| **Format**          | `ERROR~<message>`                                                                                                                                      |
-| **Arguments**       | `message`: Human-readable error description                                                                                                            |
-| **Common Messages** | `Username required`, `Username already taken`, `Must login first`, `Invalid move format`, `Not in a game`, `Unknown command`, `Invalid message format` |
-
-**Example:**
-
-```
-ERROR~Username already taken
-```
+| Property   | Details                                               |
+| ---------- | ----------------------------------------------------- |
+| **Format** | `ERROR[~description]`                                 |
+| **Note**   | Description is for debugging only, never show to user |
 
 ---
 
-## Command Summary Table
+## Command Summary
 
-| Command           | Direction | Arguments               | Description                     |
-| ----------------- | --------- | ----------------------- | ------------------------------- |
-| `LOGIN`           | C → S     | `username`              | Register with a unique username |
-| `QUEUE`           | C → S     | None                    | Join matchmaking queue          |
-| `MOVE`            | C → S     | `boardIndex`, `pieceId` | Make a game move                |
-| `CHAT`            | C → S     | `message`               | Send chat message (extension)   |
-| `JOIN`            | C → S     | `queueName`             | Join named queue (extension)    |
-| `LEAVE`           | C → S     | None                    | Leave current queue             |
-| `REMATCH_REQUEST` | C → S     | None                    | Request rematch                 |
-| `REMATCH_ACCEPT`  | C → S     | None                    | Accept rematch                  |
-| `REMATCH_DENY`    | C → S     | None                    | Decline rematch                 |
-| `WELCOME`         | S → C     | `username`              | Login successful                |
-| `QUEUED`          | S → C     | None                    | Added to queue                  |
-| `GAMESTART`       | S → C     | `opponentName`          | Game begins                     |
-| `YOURTURN`        | S → C     | None                    | Player's turn                   |
-| `OPPONENTMOVE`    | S → C     | `boardIndex`, `pieceId` | Opponent made move              |
-| `WIN`             | S → C     | None                    | Player wins                     |
-| `LOSE`            | S → C     | None                    | Player loses                    |
-| `TIE`             | S → C     | None                    | Game is a draw                  |
-| `ERROR`           | S → C     | `message`               | Error occurred                  |
+| Command           | Direction | Format                       |
+| ----------------- | --------- | ---------------------------- |
+| `HELLO`           | C↔S       | `HELLO~<desc>[~ext]*`        |
+| `LOGIN`           | C→S       | `LOGIN~<username>`           |
+| `LOGIN`           | S→C       | `LOGIN`                      |
+| `ALREADYLOGGEDIN` | S→C       | `ALREADYLOGGEDIN`            |
+| `LIST`            | C→S       | `LIST`                       |
+| `LIST`            | S→C       | `LIST[~user]*`               |
+| `QUEUE`           | C→S       | `QUEUE`                      |
+| `NEWGAME`         | S→C       | `NEWGAME~<p1>~<p2>`          |
+| `MOVE`            | C→S       | `MOVE~<N>[~<M>]`             |
+| `MOVE`            | S→C       | `MOVE~<N>[~<M>]`             |
+| `GAMEOVER`        | S→C       | `GAMEOVER~<reason>[~winner]` |
+| `ERROR`           | C↔S       | `ERROR[~desc]`               |
 
 ---
 
-## Typical Communication Flow
+## Extensions (Optional)
+
+### CHAT Extension
+
+- `CHAT~<message>` (client → broadcast)
+- `CHAT~<sender>~<message>` (server → clients)
+- `WHISPER~<recipient>~<message>` (private)
+- `CANNOTWHISPER~<recipient>` (delivery failed)
+- Requires escape characters: `\~` and `\\`
+
+### RANK Extension
+
+- `RANK` (client request)
+- `RANK[~username~score]*` (server response)
+
+### NAMEDQUEUES Extension
+
+- `QUEUE[~name]` (join named queue)
+
+### NOISE Extension
+
+- Encryption using Noise protocol
+- `WRONGKEY` (authentication failed)
+
+---
+
+## Typical Game Flow
 
 ```mermaid
 sequenceDiagram
@@ -349,36 +311,39 @@ sequenceDiagram
     participant S as Server
     participant C2 as Client 2
 
-    C1->>S: LOGIN~Player1
-    S->>C1: WELCOME~Player1
+    C1->>S: HELLO~Client1
+    S->>C1: HELLO~Server
+    C1->>S: LOGIN~Alice
+    S->>C1: LOGIN
 
-    C2->>S: LOGIN~Player2
-    S->>C2: WELCOME~Player2
+    C2->>S: HELLO~Client2
+    S->>C2: HELLO~Server
+    C2->>S: LOGIN~Bob
+    S->>C2: LOGIN
 
     C1->>S: QUEUE
-    S->>C1: QUEUED
-
     C2->>S: QUEUE
-    S->>C2: QUEUED
 
     Note over S: Players matched!
 
-    S->>C1: GAMESTART~Player2
-    S->>C2: GAMESTART~Player1
-    S->>C1: YOURTURN
+    S->>C1: NEWGAME~Alice~Bob
+    S->>C2: NEWGAME~Alice~Bob
 
-    C1->>S: MOVE~0~1
-    S->>C2: OPPONENTMOVE~0~1
-    S->>C2: YOURTURN
+    Note over C1: Alice's turn (first move)
+    C1->>S: MOVE~5
+    S->>C1: MOVE~5
+    S->>C2: MOVE~5
 
-    C2->>S: MOVE~4~2
-    S->>C1: OPPONENTMOVE~4~2
-    S->>C1: YOURTURN
+    Note over C2: Bob places piece 5, gives piece
+    C2->>S: MOVE~0~3
+    S->>C1: MOVE~0~3
+    S->>C2: MOVE~0~3
 
     Note over S: Game continues...
 
-    S->>C1: WIN
-    S->>C2: LOSE
+    C1->>S: MOVE~4~16
+    S->>C1: MOVE~4~16
+    S->>C2: MOVE~4~16
+    S->>C1: GAMEOVER~VICTORY~Alice
+    S->>C2: GAMEOVER~VICTORY~Alice
 ```
-
----
