@@ -137,7 +137,7 @@ public class ClientHandler implements Runnable, GameListener {
         if (gameManager.registerUsername(name, this)) {
             playerName = name;
             state = ClientState.LOGGED_IN;
-            sendMessage(PROTOCOL.LOGIN);  // No arguments!
+            sendMessage(PROTOCOL.LOGIN);
         } else {
             sendMessage(PROTOCOL.ALREADYLOGGEDIN);
         }
@@ -165,7 +165,6 @@ public class ClientHandler implements Runnable, GameListener {
             gameManager.queueForGame(this);
             state = ClientState.IN_QUEUE;
         }
-        // No response sent per protocol
     }
 
     /**
