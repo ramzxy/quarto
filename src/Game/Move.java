@@ -2,8 +2,13 @@ package Game;
 
 public class Move {
     public int boardIndex;
-    public int PieceId;
+    public int pieceId;
 
     public int getBoardIndex () {return boardIndex;}
-    public int getPieceId() {return PieceId;}
+    public int getPieceId() {return pieceId;}
+
+    public Move(int boardIndex, int pieceId){
+        this.pieceId = pieceId;
+        this.boardIndex = boardIndex;
+    }
 }
