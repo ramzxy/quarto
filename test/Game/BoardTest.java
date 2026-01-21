@@ -58,6 +58,7 @@ public class BoardTest {
         board.setPiece(0, pieces[0]);
         board.setPiece(1, pieces[1]);
         board.setPiece(2, pieces[2]);
+        Assertions.assertFalse(board.hasWinningLine());
         board.setPiece(3, pieces[3]);
         Assertions.assertTrue(board.hasWinningLine());
     }
@@ -67,6 +68,7 @@ public class BoardTest {
         board.setPiece(0, pieces[0]);
         board.setPiece(4, pieces[1]);
         board.setPiece(8, pieces[2]);
+        Assertions.assertFalse(board.hasWinningLine());
         board.setPiece(12, pieces[3]);
         Assertions.assertTrue(board.hasWinningLine());
     }
@@ -76,6 +78,7 @@ public class BoardTest {
         board.setPiece(0, pieces[0]);
         board.setPiece(5, pieces[1]);
         board.setPiece(10, pieces[2]);
+        Assertions.assertFalse(board.hasWinningLine());
         board.setPiece(15, pieces[3]);
         Assertions.assertTrue(board.hasWinningLine());
     }
