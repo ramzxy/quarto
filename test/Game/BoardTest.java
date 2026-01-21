@@ -1,5 +1,6 @@
 package Game;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,7 @@ public class BoardTest {
                 Take the least significant position, make it into boolean
                 Put it from the last in the list
                 */
-                flags[3-i] = ((i >> 1) & 1) == 1;
+                flags[3-j] = ((j >> 1) & 1) == 1;
             }
             pieces[i] = new Piece(i, flags[0], flags[1], flags[2], flags[3]);
         }
@@ -35,9 +36,47 @@ public class BoardTest {
 
 
     @Test
-    public void testSetPiece(){
-        board.setPiece(31, pieces[0]); //Invalid index
+    public void testSetGetPiece(){
+        Assertions.assertNull(board.getPiece(0)); //Should not return anything
+        Assertions.assertThrows(IllegalArgumentException.class, () -> board.getPiece(20)); //Should throw an exception
+        Assertions.assertThrows(ArrayIndexOutOfBoundsException.class, () -> board.setPiece(31, pieces[0])); //Invalid set index
         board.setPiece(0, pieces[3]); //Valid set
+        Assertions.assertEquals(board.getPiece(0), pieces[3]);
+    }
 
+    @Test
+    public void testIsFull(){
+        Assertions.assertFalse(board.isFull());
+        for(int i = 0; i < pieces.length; i++){
+            board.setPiece(i, pieces[i]);
+        }
+        Assertions.assertTrue(board.isFull());
+    }
+
+    @Test
+    public void testHorizontalLine(){
+        board.setPiece(0, pieces[0]);
+        board.setPiece(1, pieces[1]);
+        board.setPiece(2, pieces[2]);
+        board.setPiece(3, pieces[3]);
+        Assertions.assertTrue(board.hasWinningLine());
+    }
+
+    @Test
+    public void testVerticalLine(){
+        board.setPiece(0, pieces[0]);
+        board.setPiece(4, pieces[1]);
+        board.setPiece(8, pieces[2]);
+        board.setPiece(12, pieces[3]);
+        Assertions.assertTrue(board.hasWinningLine());
+    }
+
+    @Test
+    public void testDiagonalLine(){
+        board.setPiece(0, pieces[0]);
+        board.setPiece(5, pieces[1]);
+        board.setPiece(10, pieces[2]);
+        board.setPiece(15, pieces[3]);
+        Assertions.assertTrue(board.hasWinningLine());
     }
 }

@@ -17,9 +17,9 @@ public class Board {
      */
     public Piece getPiece(int index){
         if(index >= fields.length || index < 0) {
-            return null;
+            throw new IllegalArgumentException("Index is between 0 - " + (fields.length-1));
         }
-        if(fields[index] == null) {
+        else if(fields[index] == null) {
             return null;
         }
         return fields[index];
