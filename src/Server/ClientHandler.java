@@ -1,6 +1,7 @@
 package Server;
 
 import Game.*;
+import Protocol.PROTOCOL;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -121,20 +122,47 @@ public class ClientHandler implements GameListener {
         currentGame.notifyMove(new Move(-1, piece));
     }
 
-    public void receiveMove(int position, int pieceId) {
+    public void receiveMove(int position, int nextPieceId) {
         if (state != ClientState.IN_GAME || currentGame == null) {
             connection.sendError("Not in a game");
             return;
         }
         
-        Piece piece = currentGame.getPieceById(pieceId);
-        if (piece == null) {
-            connection.sendError("Invalid piece");
+        // Get the current piece to place (was set by opponent's previous move)
+        Piece currentPiece = currentGame.getCurrentPiece();
+        if (currentPiece == null) {
+            connection.sendError("No piece to place");
             return;
         }
         
-        if (!currentGame.doMove(new Move(position, piece))) {
+        // Place the current piece at the given position
+        Move move = new Move(position, currentPiece);
+        if (!currentGame.doMove(move)) {
             connection.sendError("Invalid move");
+            return;
+        }
+        
+        if (nextPieceId >= 0 && nextPieceId <= 15) {
+            // Normal move: pick piece for opponent
+            Piece nextPiece = currentGame.getPieceById(nextPieceId);
+            if (nextPiece == null) {
+                connection.sendError("Invalid piece");
+                return;
+            }
+            currentGame.pickCurrentPiece(nextPiece);
+        } else if (nextPieceId == PROTOCOL.CLAIM_QUARTO) {
+            // Player claims Quarto
+            if (currentGame.getBoard().hasWinningLine()) {
+                gameManager.endGame(currentGame, PROTOCOL.VICTORY, playerName);
+            } else {
+                gameManager.endGame(currentGame, PROTOCOL.VICTORY, currentGame.getOpponentName());
+            }
+        } else if (nextPieceId == PROTOCOL.FINAL_PIECE_NO_CLAIM) {
+            // Final piece placed without claiming Quarto
+            // Game ends in draw (board full, no winner claimed)
+            if (currentGame.isGameOver()) {
+                gameManager.endGame(currentGame, PROTOCOL.DRAW, null);
+            }
         }
     }
 
@@ -147,7 +175,7 @@ public class ClientHandler implements GameListener {
     /**
      * Called when this client starts a game.
      */
-    public void startGame(Game game, String opponent) {
+    public void startGame(Game game) {
         this.currentGame = game;
         this.state = ClientState.IN_GAME;
     }

@@ -19,6 +19,8 @@ public class Game {
     public Game(AbstractPlayer player1, AbstractPlayer player2){
         board = new Board();
         playerList = new AbstractPlayer[]{player1, player2};
+        availablePieces = new ArrayList<>();
+        gameListeners = new ArrayList<>();
 
         for(int i = 0; i < PIECE_NUMBER; i++){
             //Turns i into list of booleans that can be put inside piece's constructor
@@ -68,8 +70,7 @@ public class Game {
         if (isGameOver()) {
             notifyGameOver();
         }
-        // TODO: Before moving the turn, get the player to pick a piece from the available list to be put
-        // Switch turns
+        // Switch turns (piece picking is handled externally after doMove)
         currentTurn = (currentTurn + 1) % 2;
         
         return true;
@@ -138,6 +139,14 @@ public class Game {
     }
 
     /**
+     * Gets the current piece that must be placed.
+     * @return the piece to be placed, or null if no piece is set
+     */
+    public Piece getCurrentPiece() {
+        return currentPieceToPlace;
+    }
+
+    /**
      * Gets a piece by its ID from the available pieces.
      * @param pieceId the ID of the piece to find
      * @return the Piece, or null if not found/already used
@@ -149,5 +158,22 @@ public class Game {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets the name of the opponent (the player who is NOT currently taking their turn).
+     * @return the opponent's name
+     */
+    public String getOpponentName() {
+        int opponentIndex = (currentTurn + 1) % 2;
+        return playerList[opponentIndex].getName();
+    }
+
+    /**
+     * Gets the name of the current player (who is taking their turn).
+     * @return the current player's name
+     */
+    public String getCurrentPlayerName() {
+        return playerList[currentTurn].getName();
     }
 }

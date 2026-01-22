@@ -9,20 +9,14 @@ import Game.Move;
  * Acts as a proxy - moves are received from network messages, not computed locally.
  */
 public class ServerPlayer extends AbstractPlayer {
-    private String name;
 
     public ServerPlayer(String name) {
-        this.name = name;
+        super(name);
     }
 
     @Override
     public Move determineMove(Game game) {
         // Server players don't determine moves locally - moves come from network messages
         throw new UnsupportedOperationException("Server players receive moves from network");
-    }
-
-    @Override
-    public String getName() {
-        return name;
     }
 }

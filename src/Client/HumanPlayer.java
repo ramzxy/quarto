@@ -5,10 +5,9 @@ import Game.Game;
 import Game.Move;
 
 public class HumanPlayer extends AbstractPlayer {
-    private String name;
 
     public HumanPlayer(String name){
-        this.name = name;
+        super(name);
     }
     @Override
     public Move determineMove(Game game) {

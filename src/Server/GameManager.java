@@ -97,8 +97,8 @@ public class GameManager {
         activeGames.add(game);
         
         // Initialize game state for both clients
-        p1.startGame(game, p2.getPlayerName());
-        p2.startGame(game, p1.getPlayerName());
+        p1.startGame(game);
+        p2.startGame(game);
         
         // NEWGAME~player1~player2 - first player moves first
         p1.sendNewGame(p1.getPlayerName(), p2.getPlayerName());

@@ -158,4 +158,30 @@ public class Board {
         Board copyOfBoard = this;
         return copyOfBoard;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("      0       1       2       3   (Cols)\n");
+        sb.append("  +-------+-------+-------+-------+\n");
+        
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            sb.append(row).append(" |");
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                Piece p = getPiece(row * BOARD_SIZE + col);
+                String pStr;
+                if (p == null) {
+                    // Empty cell with coordinates for easier reading
+                    int idx = row * BOARD_SIZE + col;
+                    pStr = " " + idx + (idx < 10 ? " " : "") + "  ";
+                } else {
+                    pStr = p.toString();
+                }
+                sb.append(" ").append(pStr).append(" |");
+            }
+            sb.append("\n");
+            sb.append("  +-------+-------+-------+-------+\n");
+        }
+        return sb.toString();
+    }
 }

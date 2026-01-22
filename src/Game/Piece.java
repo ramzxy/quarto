@@ -1,11 +1,11 @@
 package Game;
 
 public class Piece {
-    final int id;
-    final boolean isTall;
-    final boolean isRound;
-    final boolean isSolid;
-    final boolean isDark;
+    public final int id;
+    public final boolean isTall;
+    public final boolean isRound;
+    public final boolean isSolid;
+    public final boolean isDark;
 
     /**
      * Constructs a unique piece based on their characteristics and giving each one an id.
@@ -24,4 +24,23 @@ public class Piece {
     }
 
     public int getId(){return this.id;}
+
+    /**
+     * Formats a piece to a string representation:
+     * Shape: () = Round, [] = Square
+     * Color: D = Dark, L = Light
+     * Solid: * = Solid, . = Hollow
+     * Height: ^ = Tall, _ = Short
+     * Format: [D*^] or (L._)
+     */
+    @Override
+    public String toString() {
+        char left = isRound ? '(' : '[';
+        char right = isRound ? ')' : ']';
+        char color = isDark ? 'D' : 'L';
+        char solid = isSolid ? '*' : ' ';
+        char height = isTall ? '^' : '_';
+        
+        return "" + left + color + solid + height + right;
+    }
 }

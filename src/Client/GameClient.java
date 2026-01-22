@@ -3,6 +3,7 @@ package Client;
 import Game.Game;
 import Game.AbstractPlayer;
 import Game.Move;
+import Game.Piece;
 
 import java.io.IOException;
 
@@ -74,17 +75,38 @@ public class GameClient {
         
         System.out.println("Game started! " + player1.getName() + " vs " + player2.getName());
         view.showGameStarted(player1.getName(), player2.getName(), iAmFirst);
+        view.displayGame(localGame);
     }
 
     public void receiveFirstMove(int pieceId) {
-        // TODO: Apply move to localGame needs position and pieceId because the doMove of localGame
+
+        Piece piece = localGame.getPieceById(pieceId);
+        if (piece != null) {
+            localGame.pickCurrentPiece(piece);
+        } else {
+            System.err.println("Received unknown piece ID: " + pieceId);
+        }
+        
         view.showMove(new String[]{"MOVE", String.valueOf(pieceId)});
+        view.displayGame(localGame);
     }
 
     public void receiveMove(int position, int pieceId) {
-        // TODO: Apply move to localGame
-        localGame.doMove(new Move(position, localGame.getBoard().getPiece(pieceId)));
+        
+        // 1. Place the piece we were holding (currentPieceToPlace) at position
+        Piece pieceToPlace = localGame.getCurrentPiece(); // This is what we were given previously
+        if (pieceToPlace != null) {
+            localGame.doMove(new Move(position, pieceToPlace));
+        }
+        
+        // 2. The opponent picked 'pieceId' for us to play next.
+        Piece nextPiece = localGame.getPieceById(pieceId);
+        if (nextPiece != null) {
+            localGame.pickCurrentPiece(nextPiece);
+        }
+
         view.showMove(new String[]{"MOVE", String.valueOf(position), String.valueOf(pieceId)});
+        view.displayGame(localGame);
     }
 
     public void receiveGameOver(String reason, String winner) {
