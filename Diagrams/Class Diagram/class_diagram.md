@@ -1,14 +1,45 @@
 ```mermaid
 classDiagram
+    %% --- Networking Base Classes ---
+    namespace networking {
+        class SocketConnection {
+            <<abstract>>
+            -Socket socket
+            -BufferedReader in
+            -BufferedWriter out
+            -boolean started
+            #SocketConnection(Socket socket)
+            #SocketConnection(String host, int port)
+            #start()
+            +sendMessage(String message) boolean
+            #close()
+            #handleStart()
+            #handleMessage(String message)* void
+            #handleDisconnect()* void
+        }
+
+        class SocketServer {
+            <<abstract>>
+            -ServerSocket serverSocket
+            #SocketServer(int port)
+            #getPort() int
+            #acceptConnections()
+            #close()
+            #handleConnection(Socket socket)* void
+        }
+    }
+
     %% --- Shared Game Logic (Model) ---
     namespace model {
         class Game {
             -Board board
             -List~Piece~ availablePieces
             -Piece currentPieceToPlace
-            -Player[] players
+            -ClientHandler[] players
             -int currentTurn
             -List~GameListener~ listeners
+            +Game()
+            +Game(ClientHandler p1, ClientHandler p2)
             +start()
             +doMove(Move move)
             +getValidMoves() List~Move~
@@ -27,9 +58,7 @@ classDiagram
 
         class Move {
             +int boardIndex
-            +int selectedPieceId
-            %% In Quarto, a turn usually consists of placing the piece
-            %% you were given (boardIndex) and choosing the next one (selectedPieceId)
+            +int pieceId
         }
 
         class Piece {
@@ -58,39 +87,45 @@ classDiagram
     %% --- Server Side ---
     namespace server {
         class Server {
-            -ServerSocket serverSocket
-            -GameManager gameManager
             -List~ClientHandler~ clients
-            -volatile boolean running
-            +start()
+            -GameManager gameManager
+            -boolean running
+            +Server(int port)
+            +create(int port)$ Server
             +run()
             +stop()
-            +removeClient(ClientHandler client)
-            +getGameManager() GameManager
+            #handleConnection(Socket socket)
         }
 
         class GameManager {
-            -BlockingQueue~ClientHandler~ waitingQueue
-            -Set~String~ takenUsernames
+            -Queue~ClientHandler~ waitingQueue
+            -Map~String,ClientHandler~ loggedInUsers
             -List~Game~ activeGames
-            +registerUsername(String name) boolean
+            +registerUsername(String name, ClientHandler client) boolean
             +releaseUsername(String name)
+            +getLoggedInUsers() List~String~
             +queueForGame(ClientHandler client)
             +removeFromQueue(ClientHandler client)
             +createGame(ClientHandler p1, ClientHandler p2) Game
-            +endGame(Game game)
+            +endGame(Game game, String reason, String winner)
             +handleDisconnect(ClientHandler client)
         }
 
         class ServerConnection {
-            -Socket socket
-            -BufferedReader in
-            -PrintWriter out
+            -ClientHandler clientHandler
             +ServerConnection(Socket socket)
-            +readMessage() String
-            +sendMessage(String command, String... args)
-            +close()
-            +isConnected() boolean
+            +setClientHandler(ClientHandler handler)
+            #handleMessage(String message)
+            #handleDisconnect()
+            +sendHello(String desc)
+            +sendLogin()
+            +sendAlreadyLoggedIn()
+            +sendList(String[] users)
+            +sendNewGame(String p1, String p2)
+            +sendMove(int pos, int pieceId)
+            +sendFirstMove(int pieceId)
+            +sendGameOver(String reason, String winner)
+            +sendError(String msg)
         }
 
         class ClientHandler {
@@ -98,13 +133,28 @@ classDiagram
             -GameManager gameManager
             -String playerName
             -Game currentGame
-            +run()
-            +handleProtocolMessage(String msg)
-            +sendMessage(String command, String... args)
-            +disconnect()
-            +getPlayerName() String
-            +getCurrentGame() Game
-            +setCurrentGame(Game game)
+            -ClientState state
+            -List~String~ supportedExtensions
+            +ClientHandler(Socket socket, GameManager gm)
+            +start()
+            +receiveHello(String desc, String[] exts)
+            +receiveLogin(String name)
+            +receiveList()
+            +receiveQueue()
+            +receiveFirstMove(int pieceId)
+            +receiveMove(int pos, int pieceId)
+            +receiveDisconnect()
+            +startGame(Game game, String opponent)
+            +sendNewGame(String p1, String p2)
+        }
+
+        class ClientState {
+            <<enumeration>>
+            CONNECTED
+            HELLO_RECEIVED
+            LOGGED_IN
+            IN_QUEUE
+            IN_GAME
         }
     }
 
@@ -115,26 +165,44 @@ classDiagram
         }
 
         class ClientConnection {
-            -Socket socket
-            -BufferedReader in
-            -PrintWriter out
-            +connect(String ip, int port)
-            +sendMessage(String msg)
-            +readMessage() String
-            +close()
-            +isConnected() boolean
+            -GameClient gameClient
+            +ClientConnection(String host, int port)
+            +setGameClient(GameClient client)
+            #handleMessage(String message)
+            #handleDisconnect()
+            +sendHello(String desc)
+            +sendLogin(String username)
+            +sendList()
+            +sendQueue()
+            +sendMove(int pos, int pieceId)
+            +sendFirstMove(int pieceId)
         }
 
         class GameClient {
             -ClientConnection connection
-            -AbstractPlayer localPlayer
+            -String playerName
             -Game localGame
             -ClientView view
-            +GameClient(AbstractPlayer player, ClientView view)
-            +start(String ip, int port)
-            +handshake()
-            +gameLoop()
-            +requestMove() Move
+            -boolean loggedIn
+            -boolean inQueue
+            -boolean inGame
+            +GameClient(String host, int port, String name, ClientView view)
+            +start()
+            +receiveHello(String serverDesc)
+            +receiveLogin()
+            +receiveAlreadyLoggedIn()
+            +receiveList(String[] users)
+            +receiveNewGame(String p1, String p2)
+            +receiveFirstMove(int pieceId)
+            +receiveMove(int pos, int pieceId)
+            +receiveGameOver(String reason, String winner)
+            +receiveError(String error)
+            +receiveDisconnect()
+            +joinQueue()
+            +leaveQueue()
+            +requestPlayerList()
+            +makeMove(int pos, int pieceId)
+            +makeFirstMove(int pieceId)
             +disconnect()
         }
 
@@ -155,12 +223,26 @@ classDiagram
             +displayGame(Game game)
             +requestMove(Game game) Move
             +showMessage(String msg)
+            +showLoggedIn(String name)
+            +showError(String error)
+            +showDisconnected()
+            +showUserList(String[] users)
+            +showGameStarted(String p1, String p2, boolean first)
+            +showMove(String[] parts)
+            +showGameOver(String reason, String winner)
         }
 
         class TUI {
             +displayGame(Game game)
             +requestMove(Game game) Move
             +showMessage(String msg)
+            +showLoggedIn(String name)
+            +showError(String error)
+            +showDisconnected()
+            +showUserList(String[] users)
+            +showGameStarted(String p1, String p2, boolean first)
+            +showMove(String[] parts)
+            +showGameOver(String reason, String winner)
         }
     }
 
@@ -182,9 +264,15 @@ classDiagram
         }
     }
 
-    %% Relationships
+    %% === Relationships ===
+
+    %% Networking Inheritance
+    SocketConnection <|-- ServerConnection
+    SocketConnection <|-- ClientConnection
+    SocketServer <|-- Server
+
+    %% Model Relationships
     Game *-- Board
-    Game o-- AbstractPlayer
     Game o-- Piece
     Game o-- GameListener
     AbstractPlayer ..> Move : creates
@@ -194,19 +282,21 @@ classDiagram
     Server *-- GameManager
     Server o-- ClientHandler
     ClientHandler *-- ServerConnection : uses
-    GameManager o-- ClientHandler : queues
-    GameManager o-- Game : manages
     ClientHandler ..|> GameListener : implements
     ClientHandler --> Game : plays in
+    ClientHandler --> ClientState : has
+    ServerConnection --> ClientHandler : delegates to
+    GameManager o-- ClientHandler : queues
+    GameManager o-- Game : manages
 
     %% Client Relationships
     ClientApplication --> GameClient
     GameClient *-- ClientConnection : uses for network
-    GameClient o-- AbstractPlayer : localPlayer
     GameClient o-- ClientView
-    GameClient o-- Game
+    GameClient o-- Game : localGame
+    ClientConnection --> GameClient : delegates to
 
-    %% Player Inheritance (extends AbstractPlayer from model)
+    %% Player Inheritance
     AbstractPlayer <|-- HumanPlayer
     AbstractPlayer <|-- ComputerPlayer
     HumanPlayer o-- ClientView : uses for input
@@ -222,121 +312,128 @@ classDiagram
 
 ---
 
+## Architecture Overview
+
+The system uses a layered architecture with a shared `Networking` package:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Networking Package                    │
+│  ┌─────────────────────┐    ┌─────────────────────┐     │
+│  │  SocketConnection   │    │    SocketServer     │     │
+│  │    (abstract)       │    │     (abstract)      │     │
+│  └──────────┬──────────┘    └──────────┬──────────┘     │
+└─────────────┼──────────────────────────┼────────────────┘
+              │                          │
+     ┌────────┴────────┐                 │
+     │                 │                 │
+┌────▼────┐      ┌─────▼─────┐     ┌─────▼─────┐
+│ Client  │      │  Server   │     │  Server   │
+│Connection│      │Connection │     │  (main)   │
+└────┬────┘      └─────┬─────┘     └───────────┘
+     │                 │
+     │ delegates       │ delegates
+     ▼                 ▼
+┌──────────┐     ┌─────────────┐
+│GameClient│     │ClientHandler│
+└──────────┘     └─────────────┘
+```
+
+---
+
 ## Server System Documentation
 
 ### `Server` Class
 
-The main entry point for the server application. Handles TCP connections and delegates client management.
+Extends `SocketServer`. Entry point for the server application.
 
-| Method                        | Description                                                                                                                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `start()`                     | Binds the `ServerSocket` to the configured port. Prompts user for a new port if the initial one is unavailable. Sets `running = true`.                                                               |
-| `run()`                       | Main server loop. Blocks on `serverSocket.accept()`, creates a new `ClientHandler` for each connection, adds it to the `clients` list, and spawns a new thread for it. Runs until `running = false`. |
-| `stop()`                      | Gracefully shuts down the server. Sets `running = false`, disconnects all `ClientHandler` instances, clears the client list, and closes the `ServerSocket`.                                          |
-| `removeClient(ClientHandler)` | Called by a `ClientHandler` when it disconnects. Removes it from the `clients` list. Thread-safe.                                                                                                    |
-| `getGameManager()`            | Returns the singleton `GameManager` instance for client handlers to use.                                                                                                                             |
+| Method                   | Description                                                              |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `Server(int port)`       | Constructor that binds to the specified port.                            |
+| `create(int port)`       | Static factory that prompts for new port if initial is unavailable.      |
+| `run()`                  | Starts accepting connections. Blocks until `stop()` is called.           |
+| `handleConnection(sock)` | Called for each new client. Creates `ClientHandler` and calls `start()`. |
+| `stop()`                 | Closes the server socket and stops accepting connections.                |
 
 ---
 
-### `GameManager` Class
+### `ServerConnection` Class
 
-Central coordinator for matchmaking, username management, and active game tracking.
+Extends `SocketConnection`. Handles protocol parsing and delegates to `ClientHandler`.
 
-| Method                                     | Description                                                                                                                                                              |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `registerUsername(String)`                 | Attempts to register a username. Returns `true` if successful, `false` if the username is already taken. Thread-safe using synchronized access to `takenUsernames`.      |
-| `releaseUsername(String)`                  | Removes a username from the registry. Called when a client disconnects.                                                                                                  |
-| `queueForGame(ClientHandler)`              | Adds a client to the waiting queue. If two players are queued, automatically pairs them and calls `createGame()`. Uses a `BlockingQueue` for thread-safety.              |
-| `removeFromQueue(ClientHandler)`           | Removes a client from the waiting queue (e.g., if they disconnect while waiting).                                                                                        |
-| `createGame(ClientHandler, ClientHandler)` | Creates a new `Game` instance, assigns both players, adds it to `activeGames`, notifies both clients that the game has started, and sets `currentGame` on both handlers. |
-| `endGame(Game)`                            | Removes a game from `activeGames`. Called when a game finishes (win/draw) or is terminated due to disconnection.                                                         |
-| `handleDisconnect(ClientHandler)`          | Handles all cleanup when a client disconnects: removes from queue, releases username, notifies opponent if in a game, and ends the game.                                 |
+| Method                 | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `handleMessage(msg)`   | Parses protocol message, calls appropriate `receive*()` on handler |
+| `handleDisconnect()`   | Notifies handler of disconnect                                     |
+| `sendHello(desc)`      | Sends `HELLO~description`                                          |
+| `sendLogin()`          | Sends `LOGIN` confirmation                                         |
+| `sendNewGame(p1, p2)`  | Sends `NEWGAME~player1~player2`                                    |
+| `sendMove(pos, piece)` | Sends `MOVE~position~pieceId`                                      |
+| `sendGameOver(r, w)`   | Sends `GAMEOVER~reason~winner`                                     |
+| `sendError(msg)`       | Sends `ERROR~message`                                              |
 
 ---
 
 ### `ClientHandler` Class
 
-Handles all communication with a single connected client. Implements `GameListener` to receive game state updates.
+Business logic for a single client. Implements `GameListener`.
 
-| Method                          | Description                                                                                                                                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `run()`                         | Main thread loop. Reads lines from the socket, parses protocol messages, and calls appropriate handlers. On any exception or disconnect, triggers cleanup via `GameManager.handleDisconnect()` and `Server.removeClient()`. |
-| `handleProtocolMessage(String)` | Parses and dispatches incoming protocol messages (e.g., `LOGIN`, `QUEUE`, `MOVE`). Validates input and sends error responses for invalid messages.                                                                          |
-| `sendProtocolMessage(String)`   | Sends a formatted protocol message to the client. Handles `PrintWriter` synchronization.                                                                                                                                    |
-| `disconnect()`                  | Closes the socket and I/O streams. Called during graceful shutdown or error handling.                                                                                                                                       |
-| `getPlayerName()`               | Returns the registered username for this client.                                                                                                                                                                            |
-| `getCurrentGame()`              | Returns the `Game` this client is currently playing in, or `null` if not in a game.                                                                                                                                         |
-| `setCurrentGame(Game)`          | Sets the current game reference. Called by `GameManager.createGame()` or `endGame()`.                                                                                                                                       |
-
----
-
-### Thread Safety Notes
-
-| Component                    | Synchronization Strategy                                                |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| `Server.clients`             | `CopyOnWriteArrayList` — safe for concurrent iteration and modification |
-| `GameManager.waitingQueue`   | `LinkedBlockingQueue` — thread-safe producer-consumer queue             |
-| `GameManager.takenUsernames` | `ConcurrentHashMap.newKeySet()` or synchronized `HashSet`               |
-| `GameManager.activeGames`    | `CopyOnWriteArrayList` or synchronized list                             |
-| `ClientHandler.out`          | Synchronize on `out` when sending messages to avoid interleaved output  |
+| Method                | Description                                   |
+| --------------------- | --------------------------------------------- |
+| `receiveHello(...)`   | Handles HELLO, responds with server HELLO     |
+| `receiveLogin(name)`  | Registers username via GameManager            |
+| `receiveQueue()`      | Toggles queue status                          |
+| `receiveMove(...)`    | Validates and applies move to current game    |
+| `receiveDisconnect()` | Cleans up via GameManager                     |
+| `moveMade(move)`      | GameListener: forwards move to client         |
+| `gameFinished(game)`  | GameListener: resets state, allows re-queuing |
 
 ---
 
 ## Client System Documentation
 
+### `ClientConnection` Class
+
+Extends `SocketConnection`. Handles protocol parsing and delegates to `GameClient`.
+
+| Method                 | Description                                                       |
+| ---------------------- | ----------------------------------------------------------------- |
+| `handleMessage(msg)`   | Parses protocol message, calls appropriate `receive*()` on client |
+| `handleDisconnect()`   | Notifies client of disconnect                                     |
+| `sendHello(desc)`      | Sends `HELLO~description`                                         |
+| `sendLogin(user)`      | Sends `LOGIN~username`                                            |
+| `sendQueue()`          | Sends `QUEUE`                                                     |
+| `sendMove(pos, piece)` | Sends `MOVE~position~pieceId`                                     |
+
+---
+
 ### `GameClient` Class
 
-The main client application that handles network communication and coordinates the local game state.
+Main client orchestrator. Manages connection state and local game.
 
-| Method                                   | Description                                                                                    |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GameClient(AbstractPlayer, ClientView)` | Constructor that injects the player (human or AI) and view. Uses composition for flexibility.  |
-| `connect(ip, port)`                      | Establishes a TCP connection to the server.                                                    |
-| `handshake()`                            | Performs the initial protocol handshake (e.g., sending `HELLO` and `LOGIN` messages).          |
-| `startListenerLoop()`                    | Main loop that listens for incoming protocol messages from the server and dispatches them.     |
-| `requestMove()`                          | When it's the local player's turn, delegates to `localPlayer.determineMove()` to get the move. |
-
----
-
-### `HumanPlayer` Class
-
-A concrete player that gets moves from human input via the `ClientView`.
-
-| Method                            | Description                                                                |
-| --------------------------------- | -------------------------------------------------------------------------- |
-| `HumanPlayer(String, ClientView)` | Constructor that sets the player name and view for input.                  |
-| `determineMove(Game)`             | Delegates to `view.requestMove()` to prompt the human user for their move. |
+| Method                 | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `receiveHello(...)`    | Receives server hello, auto-sends LOGIN            |
+| `receiveLogin()`       | Marks as logged in, notifies view                  |
+| `receiveNewGame(...)`  | Creates new local Game, notifies view              |
+| `receiveMove(...)`     | Applies move to local game                         |
+| `receiveGameOver(...)` | Clears game state, can re-queue on same connection |
+| `joinQueue()`          | Sends QUEUE to server                              |
+| `makeMove(pos, piece)` | Sends move to server                               |
 
 ---
 
-### `ComputerPlayer` Class
+## Key Design Pattern: Delegation
 
-A concrete player that uses an AI strategy to compute moves.
+Both client and server use a **delegation pattern**:
 
-| Method                             | Description                                                          |
-| ---------------------------------- | -------------------------------------------------------------------- |
-| `ComputerPlayer(String, Strategy)` | Constructor that sets the player name and AI strategy.               |
-| `determineMove(Game)`              | Delegates to `strategy.computeMove()` to get the AI-calculated move. |
-
----
-
-### Design Pattern: Composition over Inheritance
-
-The client uses **composition** instead of inheritance for player types:
-
-```java
-// Human player client:
-AbstractPlayer player = new HumanPlayer("Alice", tuiView);
-GameClient client = new GameClient(player, tuiView);
-
-// AI player client (same GameClient class!):
-AbstractPlayer player = new ComputerPlayer("Bot", new SmartStrategy());
-GameClient client = new GameClient(player, tuiView);
+```
+Connection (parsing) ──delegates to──> Handler (logic)
 ```
 
 **Benefits:**
 
-- `GameClient` doesn't need subclassing — same class works for human and AI
-- Easy to swap player implementations at runtime
-- `ComputerPlayer` doesn't inherit network code it doesn't need
-- Each class has a single responsibility
+- Clean separation of networking and business logic
+- Connection classes are reusable
+- Easy to test handlers without network
+- Same connection supports multiple games (stateless parsing)

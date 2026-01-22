@@ -1,9 +1,21 @@
 
+================================ NETWORKING (Base Classes) ================================
+
+SocketConnection (abstract)
+    Base class for all network connections. Handles socket I/O, message
+    reading/writing, and connection lifecycle. Subclasses implement
+    handleMessage() and handleDisconnect() for protocol-specific logic.
+
+SocketServer (abstract)
+    Base class for servers. Handles ServerSocket binding and connection
+    acceptance. Subclasses implement handleConnection() to create handlers.
+
 ================================ MODEL (Shared) ================================
 
 Game
     The main game logic. Manages the board, pieces, players, and turns.
     Validates moves, checks for win conditions, and notifies listeners.
+    Has a no-arg constructor for client-side use.
 
 Board
     Represents the 4x4 game board. Stores placed pieces and checks for
@@ -27,18 +39,26 @@ AbstractPlayer (abstract)
 
 ================================ SERVER ================================
 
-Server
+Server (extends SocketServer)
     Entry point for the server. Accepts TCP connections on a port,
-    creates a ClientHandler for each client, and manages the client list.
+    creates a ClientHandler for each client via handleConnection().
 
 GameManager
     Central coordinator. Handles username registration, matchmaking queue,
     and active game tracking. Pairs players and creates games.
 
+ServerConnection (extends SocketConnection)
+    Handles protocol parsing for server-side connections. Parses incoming
+    messages and delegates to ClientHandler via receive*() methods.
+    Provides send*() methods for outgoing protocol messages.
+
 ClientHandler
-    One per connected client. Reads protocol messages, validates them,
-    and dispatches to appropriate handlers. Implements GameListener to
-    forward game events to the client over the network.
+    One per connected client. Contains business logic for handling
+    protocol commands. Uses composition with ServerConnection.
+    Implements GameListener to forward game events to the client.
+
+ClientState (enum)
+    Connection state: CONNECTED → HELLO_RECEIVED → LOGGED_IN → IN_QUEUE → IN_GAME
 
 ================================ CLIENT ================================
 
@@ -46,14 +66,15 @@ ClientApplication
     Entry point for the client. Creates the player, view, and GameClient,
     then starts the connection.
 
-ServerConnection
-    Handles low-level socket I/O. Connects to the server, sends messages,
-    receives messages, and manages the connection lifecycle.
+ClientConnection (extends SocketConnection)
+    Handles protocol parsing for client-side connections. Parses incoming
+    server messages and delegates to GameClient via receive*() methods.
+    Provides send*() methods for outgoing protocol messages.
 
 GameClient
-    Main client orchestrator. Uses ServerConnection for network I/O,
-    AbstractPlayer for move decisions, and ClientView for display.
-    Manages the local game state and game loop.
+    Main client orchestrator. Uses composition with ClientConnection.
+    Manages the local game state. Supports multiple games on the same
+    connection by resetting state when GAMEOVER is received.
 
 HumanPlayer (extends AbstractPlayer)
     A player controlled by a human. When determineMove() is called,
@@ -65,7 +86,7 @@ ComputerPlayer (extends AbstractPlayer)
 
 ClientView (interface)
     Interface for displaying the game and getting user input.
-    Allows different UI implementations (TUI, GUI).
+    Includes methods for login, errors, game events, etc.
 
 TUI (implements ClientView)
     Text-based user interface. Displays the board in the console
@@ -83,4 +104,15 @@ RandomStrategy (implements Strategy)
 SmartStrategy (implements Strategy)
     Advanced AI using minimax algorithm with alpha-beta pruning.
     Evaluates positions and looks ahead multiple moves.
+
+================================ DESIGN PATTERN ================================
+
+Delegation Pattern:
+  - ServerConnection parses protocol → calls ClientHandler.receive*()
+  - ClientConnection parses protocol → calls GameClient.receive*()
+  
+This separates networking from business logic and allows:
+  - Reusable connection classes
+  - Easy testing of handlers
+  - Same connection supports multiple games
 

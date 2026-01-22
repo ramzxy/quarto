@@ -7,343 +7,302 @@ sequenceDiagram
     actor User as User
     participant App as ClientApplication
     participant GC as GameClient
-    participant Conn as ServerConnection
-    participant HP as HumanPlayer
+    participant CC as ClientConnection
     participant View as TUI
+    participant SC as ServerConnection
     participant CH as ClientHandler
     participant S as Server
     participant GM as GameManager
 
     User->>App: Start application
     App->>View: new TUI()
-    App->>HP: new HumanPlayer("Alice", view)
-    App->>GC: new GameClient(player, view)
-    
-    User->>GC: connect("localhost", 5000)
+    App->>GC: new GameClient("localhost", 5000, "Alice", view)
     activate GC
-    GC->>Conn: new ServerConnection()
-    GC->>Conn: connect("localhost", 5000)
-    activate Conn
-    Conn->>S: TCP connect
+    GC->>CC: new ClientConnection("localhost", 5000)
+    activate CC
+    CC->>S: TCP connect
     activate S
-    S->>CH: new ClientHandler(socket)
-    S->>S: clients.add(CH)
-    Note over S: Spawns new thread for CH
+    S->>SC: new ServerConnection(socket)
+    S->>CH: new ClientHandler(socket, gameManager)
+    CH->>SC: setClientHandler(this)
+    S->>CH: start()
+    CH->>SC: start()
+    Note over SC: Starts receive thread
     deactivate S
-    Conn-->>GC: connected
-    deactivate Conn
-    
-    GC->>GC: handshake()
-    GC->>Conn: sendMessage("HELLO~Quarto")
-    Conn->>CH: "HELLO~Quarto"
-    CH->>Conn: "HELLO~Quarto"
-    Conn-->>GC: "HELLO~Quarto"
-    
-    GC->>View: requestUsername()
-    View->>User: "Enter username:"
-    User->>View: "Alice"
-    View-->>GC: "Alice"
-    
-    GC->>Conn: sendMessage("LOGIN~Alice")
-    Conn->>CH: "LOGIN~Alice"
+    CC-->>GC: connection established
+    deactivate CC
+
+    GC->>CC: setGameClient(this)
+    GC->>GC: start()
+    GC->>CC: start()
+    Note over CC: Starts receive thread
+    GC->>CC: sendHello("GameClient")
+    CC->>SC: "HELLO~GameClient"
+
+    SC->>SC: handleMessage("HELLO~GameClient")
+    SC->>CH: receiveHello("GameClient", [])
     activate CH
-    CH->>GM: registerUsername("Alice")
-    activate GM
-    GM-->>CH: true (success)
-    deactivate GM
-    CH->>Conn: "LOGIN"
+    CH->>SC: sendHello("Quarto Server")
     deactivate CH
-    Conn-->>GC: "LOGIN"
-    
+    SC->>CC: "HELLO~Quarto Server"
+
+    CC->>CC: handleMessage("HELLO~Quarto Server")
+    CC->>GC: receiveHello("Quarto Server")
+    GC->>CC: sendLogin("Alice")
+    CC->>SC: "LOGIN~Alice"
+
+    SC->>SC: handleMessage("LOGIN~Alice")
+    SC->>CH: receiveLogin("Alice")
+    activate CH
+    CH->>GM: registerUsername("Alice", this)
+    activate GM
+    GM-->>CH: true
+    deactivate GM
+    CH->>SC: sendLogin()
+    deactivate CH
+    SC->>CC: "LOGIN"
+
+    CC->>CC: handleMessage("LOGIN")
+    CC->>GC: receiveLogin()
+    GC->>View: showLoggedIn("Alice")
+
     Note over GC: Login successful!
     deactivate GC
 ```
 
 ---
 
-## 2. Queue Command Handling
+## 2. Queue and Game Start
 
 ```mermaid
 sequenceDiagram
     actor P1 as Player 1 (Alice)
     participant GC1 as GameClient (P1)
-    participant Conn1 as ServerConnection (P1)
+    participant CC1 as ClientConnection (P1)
+    participant SC1 as ServerConnection (P1)
     participant CH1 as ClientHandler (P1)
-    participant S as Server
     participant GM as GameManager
-    participant Q as WaitingQueue
     participant Game as Game
     participant CH2 as ClientHandler (P2)
-    participant Conn2 as ServerConnection (P2)
+    participant SC2 as ServerConnection (P2)
+    participant CC2 as ClientConnection (P2)
     participant GC2 as GameClient (P2)
     actor P2 as Player 2 (Bob)
 
     Note over GM: Initial State: Queue is empty
 
-    P1->>GC1: queue()
-    GC1->>Conn1: sendMessage("QUEUE")
-    Conn1->>CH1: "QUEUE"
+    P1->>GC1: joinQueue()
+    GC1->>CC1: sendQueue()
+    CC1->>SC1: "QUEUE"
+    SC1->>CH1: receiveQueue()
     activate CH1
-    CH1->>CH1: handleProtocolMessage("QUEUE")
-    CH1->>GM: queueForGame(CH1)
+    CH1->>GM: queueForGame(this)
     activate GM
-    GM->>Q: add(CH1)
-    activate Q
-    Q-->>GM: void
-    deactivate Q
-    GM->>GM: checkForMatch()
-    Note over GM: Queue has 1 player.<br/>No match possible.
-    GM-->>CH1: void
+    GM->>GM: waitingQueue.add(CH1)
+    GM->>GM: tryMatchPlayers()
+    Note over GM: Queue has 1 player
     deactivate GM
     deactivate CH1
 
-    Note over GM: Player 1 is waiting in the queue...
+    Note over GM: Player 1 waiting...
 
-    P2->>GC2: queue()
-    GC2->>Conn2: sendMessage("QUEUE")
-    Conn2->>CH2: "QUEUE"
+    P2->>GC2: joinQueue()
+    GC2->>CC2: sendQueue()
+    CC2->>SC2: "QUEUE"
+    SC2->>CH2: receiveQueue()
     activate CH2
-    CH2->>CH2: handleProtocolMessage("QUEUE")
-    CH2->>GM: queueForGame(CH2)
+    CH2->>GM: queueForGame(this)
     activate GM
-    GM->>Q: add(CH2)
-    activate Q
-    Q-->>GM: void
-    deactivate Q
-    
-    GM->>GM: checkForMatch()
-    Note over GM: Queue has 2 players.<br/>Match found!
-    
-    GM->>Q: poll()
-    activate Q
-    Q-->>GM: CH1
-    deactivate Q
-    GM->>Q: poll()
-    activate Q
-    Q-->>GM: CH2
-    deactivate Q
+    GM->>GM: waitingQueue.add(CH2)
+    GM->>GM: tryMatchPlayers()
+    Note over GM: 2 players - Match found!
 
-    GM->>Game: new Game("Alice", "Bob")
+    GM->>Game: new Game(CH1, CH2)
     activate Game
-    Game->>Game: initializeBoard()
-    Game->>Game: selectRandomFirstPiece()
     Game-->>GM: Game instance
     deactivate Game
 
-    GM->>CH1: setCurrentGame(Game)
-    GM->>CH2: setCurrentGame(Game)
-    
+    GM->>CH1: startGame(game, "Bob")
+    GM->>CH2: startGame(game, "Alice")
+
     par Notify P1
         GM->>CH1: sendNewGame("Alice", "Bob")
-        CH1->>Conn1: "NEWGAME~Alice~Bob"
-        Conn1-->>GC1: "NEWGAME~Alice~Bob"
-        GC1->>GC1: opponentName = "Bob"
+        CH1->>SC1: sendNewGame("Alice", "Bob")
+        SC1->>CC1: "NEWGAME~Alice~Bob"
+        CC1->>GC1: receiveNewGame("Alice", "Bob")
+        GC1->>GC1: localGame = new Game()
     and Notify P2
         GM->>CH2: sendNewGame("Alice", "Bob")
-        CH2->>Conn2: "NEWGAME~Alice~Bob"
-        Conn2-->>GC2: "NEWGAME~Alice~Bob"
-        GC2->>GC2: opponentName = "Alice"
+        CH2->>SC2: sendNewGame("Alice", "Bob")
+        SC2->>CC2: "NEWGAME~Alice~Bob"
+        CC2->>GC2: receiveNewGame("Alice", "Bob")
+        GC2->>GC2: localGame = new Game()
     end
-    
+
     deactivate GM
     deactivate CH2
 
-    Note over Game: Game Started!<br/>First piece selected by server.
+    Note over Game: Game Started!
 ```
 
 ---
 
-## 3. Move Command Handling (Full Client-Server Flow)
+## 3. Move Handling
 
 ```mermaid
 sequenceDiagram
     actor User1 as User (Alice)
     participant View1 as TUI (P1)
-    participant HP1 as HumanPlayer (P1)
     participant GC1 as GameClient (P1)
-    participant Conn1 as ServerConnection (P1)
+    participant CC1 as ClientConnection (P1)
+    participant SC1 as ServerConnection (P1)
     participant CH1 as ClientHandler (P1)
     participant Game as Game (Server)
-    participant Board as Board
     participant CH2 as ClientHandler (P2)
-    participant Conn2 as ServerConnection (P2)
+    participant SC2 as ServerConnection (P2)
+    participant CC2 as ClientConnection (P2)
     participant GC2 as GameClient (P2)
-    participant HP2 as HumanPlayer (P2)
     participant View2 as TUI (P2)
     actor User2 as User (Bob)
 
-    Note over Game: State: Alice's Turn<br/>Piece to Place: ID 5
+    Note over Game: Alice's Turn
 
-    rect rgb(230, 245, 255)
-        Note over GC1: It's my turn!
-        GC1->>HP1: determineMove(localGame)
-        activate HP1
-        HP1->>View1: requestMove(game)
-        activate View1
-        View1->>User1: "Enter position and next piece:"
-        User1->>View1: "3 9"
-        View1-->>HP1: Move(3, 9)
-        deactivate View1
-        HP1-->>GC1: Move(3, 9)
-        deactivate HP1
-    end
-    
-    GC1->>Conn1: sendMessage("MOVE~3~9")
-    Conn1->>CH1: "MOVE~3~9"
-    
+    User1->>GC1: makeMove(3, 9)
+    GC1->>CC1: sendMove(3, 9)
+    CC1->>SC1: "MOVE~3~9"
+
+    SC1->>SC1: handleMessage("MOVE~3~9")
+    SC1->>CH1: receiveMove(3, 9)
     activate CH1
-    CH1->>CH1: handleProtocolMessage("MOVE~3~9")
-    Note over CH1: Parse string to Move object
-    
+
+    Note over CH1: Validate & apply move
+
     CH1->>Game: doMove(Move(3, 9))
-    activate Game
-    
-    Game->>Game: validateMove(Move)
-    alt Invalid Move
-        Game-->>CH1: throws InvalidMoveException
-        CH1->>Conn1: "ERROR~Invalid move"
-        Conn1-->>GC1: "ERROR~Invalid move"
-        GC1->>View1: showMessage("Invalid move!")
-    else Valid Move
-        Game->>Board: setPiece(3, Piece(5))
-        activate Board
-        Board-->>Game: void
-        deactivate Board
-        
-        Game->>Board: hasWinningLine()
-        activate Board
-        Board-->>Game: false
-        deactivate Board
-        
-        Game->>Game: currentPieceToPlace = Piece(9)
-        Game->>Game: switchTurn()
-        
-        Game->>Game: notifyListeners()
-        
-        par Notify P1 (confirmation)
-            Game->>CH1: moveMade(Move(3, 9))
-            CH1->>Conn1: "MOVE~3~9"
-            Conn1-->>GC1: "MOVE~3~9"
-            GC1->>GC1: localGame.doMove(Move(3, 9))
-            GC1->>View1: displayGame(localGame)
-        and Notify P2 (opponent's move)
-            Game->>CH2: moveMade(Move(3, 9))
-            activate CH2
-            CH2->>Conn2: "MOVE~3~9"
-            Conn2-->>GC2: "MOVE~3~9"
-            GC2->>GC2: localGame.doMove(Move(3, 9))
-            GC2->>View2: displayGame(localGame)
-            deactivate CH2
-        end
-    end
-    
-    deactivate Game
-    deactivate CH1
-
-    rect rgb(255, 245, 230)
-        Note over GC2: Now it's my turn!
-        GC2->>HP2: determineMove(localGame)
-        activate HP2
-        HP2->>View2: requestMove(game)
-        activate View2
-        View2->>User2: "Enter position and next piece:"
-        Note over User2: Bob makes their move...
-        deactivate View2
-        deactivate HP2
-    end
-```
-
----
-
-## 4. AI Client Move (ComputerPlayer)
-
-```mermaid
-sequenceDiagram
-    participant GC as GameClient
-    participant CP as ComputerPlayer
-    participant Strat as SmartStrategy
-    participant Conn as ServerConnection
-    participant CH as ClientHandler
-    participant Game as Game (Server)
-
-    Note over GC: It's AI's turn!
-    
-    GC->>CP: determineMove(localGame)
-    activate CP
-    CP->>Strat: computeMove(localGame)
-    activate Strat
-    Note over Strat: Runs minimax algorithm<br/>Evaluates positions...
-    Strat-->>CP: Move(7, 12)
-    deactivate Strat
-    CP-->>GC: Move(7, 12)
-    deactivate CP
-    
-    GC->>Conn: sendMessage("MOVE~7~12")
-    Conn->>CH: "MOVE~7~12"
-    activate CH
-    CH->>Game: doMove(Move(7, 12))
     activate Game
     Game->>Game: validateMove()
     Game->>Game: applyMove()
     Game->>Game: notifyListeners()
+
+    par Notify P1
+        Game->>CH1: moveMade(Move(3, 9))
+        CH1->>SC1: sendMove(3, 9)
+        SC1->>CC1: "MOVE~3~9"
+        CC1->>GC1: receiveMove(3, 9)
+        GC1->>View1: showMove([...])
+    and Notify P2
+        Game->>CH2: moveMade(Move(3, 9))
+        activate CH2
+        CH2->>SC2: sendMove(3, 9)
+        SC2->>CC2: "MOVE~3~9"
+        CC2->>GC2: receiveMove(3, 9)
+        GC2->>View2: showMove([...])
+        deactivate CH2
+    end
+
     deactivate Game
-    CH->>Conn: "MOVE~7~12"
-    deactivate CH
-    Conn-->>GC: "MOVE~7~12"
-    
-    Note over GC: Move confirmed, wait for opponent
+    deactivate CH1
+
+    Note over GC2: Now it's Bob's turn
 ```
 
 ---
 
-## 5. Game End Handling
+## 4. Game Over & Re-Queue
 
 ```mermaid
 sequenceDiagram
     participant GC1 as GameClient (P1)
-    participant Conn1 as ServerConnection (P1)
+    participant CC1 as ClientConnection (P1)
+    participant SC1 as ServerConnection (P1)
     participant CH1 as ClientHandler (P1)
     participant Game as Game (Server)
     participant GM as GameManager
     participant CH2 as ClientHandler (P2)
-    participant Conn2 as ServerConnection (P2)
+    participant SC2 as ServerConnection (P2)
+    participant CC2 as ClientConnection (P2)
     participant GC2 as GameClient (P2)
     participant View1 as TUI (P1)
     participant View2 as TUI (P2)
 
-    Note over Game: P1 places final piece...
+    Note over Game: Alice wins!
 
-    CH1->>Game: doMove(Move(15, -1))
-    activate Game
-    Note over Game: -1 means no next piece<br/>(placing last available piece)
-    
-    Game->>Game: validateMove()
-    Game->>Game: applyMove()
-    Game->>Game: checkWinCondition()
-    Note over Game: QUARTO! 4 pieces align!
-    
-    Game->>Game: notifyListeners(GAME_OVER, winner=P1)
-    
+    Game->>Game: notifyListeners(GAME_OVER)
+
     par Notify P1
-        Game->>CH1: gameFinished(Result.WIN)
-        CH1->>Conn1: "GAMEOVER~VICTORY~Alice"
-        Conn1-->>GC1: "GAMEOVER~VICTORY~Alice"
-        GC1->>View1: showMessage("You won!")
+        Game->>CH1: gameFinished(game)
+        CH1->>CH1: state = LOGGED_IN
+        CH1->>CH1: currentGame = null
+        CH1->>SC1: sendGameOver("VICTORY", "Alice")
+        SC1->>CC1: "GAMEOVER~VICTORY~Alice"
+        CC1->>GC1: receiveGameOver("VICTORY", "Alice")
+        GC1->>GC1: inGame = false
+        GC1->>GC1: localGame = null
+        GC1->>View1: showGameOver("VICTORY", "Alice")
     and Notify P2
-        Game->>CH2: gameFinished(Result.LOSS)
-        CH2->>Conn2: "GAMEOVER~VICTORY~Alice"
-        Conn2-->>GC2: "GAMEOVER~VICTORY~Alice"
-        GC2->>View2: showMessage("Alice won!")
+        Game->>CH2: gameFinished(game)
+        CH2->>CH2: state = LOGGED_IN
+        CH2->>CH2: currentGame = null
+        CH2->>SC2: sendGameOver("VICTORY", "Alice")
+        SC2->>CC2: "GAMEOVER~VICTORY~Alice"
+        CC2->>GC2: receiveGameOver("VICTORY", "Alice")
+        GC2->>GC2: inGame = false
+        GC2->>GC2: localGame = null
+        GC2->>View2: showGameOver("VICTORY", "Alice")
     end
-    
-    deactivate Game
-    
-    Game->>GM: endGame(this)
-    activate GM
+
+    Game->>GM: endGame(game)
     GM->>GM: activeGames.remove(game)
-    GM->>CH1: setCurrentGame(null)
-    GM->>CH2: setCurrentGame(null)
+
+    Note over GC1,GC2: Both clients can now call<br/>joinQueue() on SAME connection!
+
+    rect rgb(230, 255, 230)
+        Note over GC1: Starting new game...
+        GC1->>GC1: joinQueue()
+        GC1->>CC1: sendQueue()
+        CC1->>SC1: "QUEUE"
+        Note over SC1: Same connection, new game!
+    end
+```
+
+---
+
+## 5. Disconnect Handling
+
+```mermaid
+sequenceDiagram
+    participant GC1 as GameClient (P1)
+    participant CC1 as ClientConnection (P1)
+    participant SC1 as ServerConnection (P1)
+    participant CH1 as ClientHandler (P1)
+    participant Game as Game
+    participant GM as GameManager
+    participant CH2 as ClientHandler (P2)
+    participant SC2 as ServerConnection (P2)
+    participant CC2 as ClientConnection (P2)
+    participant GC2 as GameClient (P2)
+
+    Note over GC1: Player 1 disconnects
+
+    CC1->>CC1: connection closed
+    SC1->>SC1: handleDisconnect()
+    SC1->>CH1: receiveDisconnect()
+
+    activate CH1
+    CH1->>GM: handleDisconnect(this)
+    activate GM
+
+    GM->>GM: removeFromQueue(CH1)
+    GM->>GM: releaseUsername("Alice")
+
+    alt Was in game
+        GM->>Game: get opponent
+        GM->>GM: activeGames.remove(game)
+        GM->>CH2: gameFinished(game)
+        CH2->>SC2: sendGameOver("DISCONNECT", "Bob")
+        SC2->>CC2: "GAMEOVER~DISCONNECT~Bob"
+        CC2->>GC2: receiveGameOver("DISCONNECT", "Bob")
+    end
+
     deactivate GM
-    
-    Note over GC1,GC2: Players can now QUEUE again
+    deactivate CH1
 ```

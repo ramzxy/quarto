@@ -1,20 +1,18 @@
 package Server;
 
+import Networking.SocketConnection;
 import Protocol.PROTOCOL;
-import java.io.BufferedReader;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
- * Wrapper around a client socket connection.
- * Handles low-level I/O operations for sending and receiving protocol messages.
+ * Server-side connection wrapper that extends the base SocketConnection.
+ * Handles protocol parsing and delegates to ClientHandler for business logic.
  */
-public class ServerConnection {
-    private Socket socket;
-    private BufferedReader in;
-    private PrintWriter out;
+public class ServerConnection extends SocketConnection {
+    
+    private ClientHandler clientHandler;
 
     /**
      * Creates a new ServerConnection wrapping the given socket.
@@ -22,60 +20,131 @@ public class ServerConnection {
      * @throws IOException if I/O streams cannot be created
      */
     public ServerConnection(Socket socket) throws IOException {
-        this.socket = socket;
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.out = new PrintWriter(socket.getOutputStream(), true);
+        super(socket);
     }
 
     /**
-     * Reads a single line from the client.
-     * @return the message read, or null if connection closed
-     * @throws IOException if an I/O error occurs
+     * Sets the handler for client events.
+     * @param clientHandler the handler to delegate to
      */
-    public String readMessage() throws IOException {
-        return in.readLine();
+    public void setClientHandler(ClientHandler clientHandler) {
+        this.clientHandler = clientHandler;
     }
 
     /**
-     * Sends a formatted protocol message to the client.
-     * Thread-safe.
-     * @param command the command name
-     * @param args optional arguments to append with separator
+     * Parses incoming protocol messages and delegates to ClientHandler.
      */
-    public void sendMessage(String command, String... args) {
-        String message = command;
-        if (args.length > 0) {
-            message += PROTOCOL.SEPARATOR + String.join(PROTOCOL.SEPARATOR, args);
+    @Override
+    protected void handleMessage(String message) {
+        if (message == null || message.isEmpty()) {
+            return;
         }
-        synchronized (out) {
-            out.println(message);
+        
+        String[] parts = message.split(PROTOCOL.SEPARATOR);
+        
+        if (parts.length < 1) {
+            System.out.println("Parse error: empty command");
+            return;
+        }
+        
+        String command = parts[0];
+        
+        switch (command) {
+            case PROTOCOL.HELLO:
+                if (parts.length < 2) {
+                    sendError("HELLO requires client description");
+                    return;
+                }
+                // Collect extensions if present
+                String[] extensions = new String[parts.length - 2];
+                System.arraycopy(parts, 2, extensions, 0, extensions.length);
+                clientHandler.receiveHello(parts[1], extensions);
+                break;
+            case PROTOCOL.LOGIN:
+                if (parts.length < 2) {
+                    sendError("LOGIN requires username");
+                    return;
+                }
+                clientHandler.receiveLogin(parts[1]);
+                break;
+            case PROTOCOL.LIST:
+                clientHandler.receiveList();
+                break;
+            case PROTOCOL.QUEUE:
+                clientHandler.receiveQueue();
+                break;
+            case PROTOCOL.MOVE:
+                if (parts.length == 2) {
+                    // First move: just piece id
+                    clientHandler.receiveFirstMove(Integer.parseInt(parts[1]));
+                } else if (parts.length >= 3) {
+                    // Regular move: position and next piece
+                    clientHandler.receiveMove(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+                } else {
+                    sendError("Invalid MOVE format");
+                }
+                break;
+            default:
+                sendError("Unknown command: " + command);
         }
     }
 
     /**
-     * Closes the connection and releases resources.
+     * Called when client disconnects.
      */
-    public void close() {
-        try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
-        } catch (IOException e) {
-            // Ignore close errors
+    @Override
+    protected void handleDisconnect() {
+        System.out.println("Client disconnecting");
+        clientHandler.receiveDisconnect();
+    }
+
+
+    public void sendHello(String serverDescription) {
+        sendMessage(PROTOCOL.HELLO + PROTOCOL.SEPARATOR + serverDescription);
+    }
+
+    public void sendLogin() {
+        sendMessage(PROTOCOL.LOGIN);
+    }
+
+    public void sendAlreadyLoggedIn() {
+        sendMessage(PROTOCOL.ALREADYLOGGEDIN);
+    }
+
+    public void sendList(String[] usernames) {
+        String msg = PROTOCOL.LIST;
+        for (String username : usernames) {
+            msg += PROTOCOL.SEPARATOR + username;
         }
+        sendMessage(msg);
     }
 
-    /**
-     * @return true if the socket is connected and not closed
-     */
-    public boolean isConnected() {
-        return socket != null && socket.isConnected() && !socket.isClosed();
+    public void sendNewGame(String player1, String player2) {
+        sendMessage(PROTOCOL.NEWGAME + PROTOCOL.SEPARATOR + player1 + PROTOCOL.SEPARATOR + player2);
     }
 
-    /**
-     * @return the underlying socket
-     */
-    public Socket getSocket() {
-        return socket;
+    public void sendMove(int position, int pieceId) {
+        sendMessage(PROTOCOL.MOVE + PROTOCOL.SEPARATOR + position + PROTOCOL.SEPARATOR + pieceId);
+    }
+
+    public void sendFirstMove(int pieceId) {
+        sendMessage(PROTOCOL.MOVE + PROTOCOL.SEPARATOR + pieceId);
+    }
+
+    public void sendGameOver(String reason, String winner) {
+        String msg = PROTOCOL.GAMEOVER + PROTOCOL.SEPARATOR + reason;
+        if (winner != null) {
+            msg += PROTOCOL.SEPARATOR + winner;
+        }
+        sendMessage(msg);
+    }
+
+    public void sendError(String message) {
+        sendMessage(PROTOCOL.ERROR + PROTOCOL.SEPARATOR + message);
+    }
+
+    @Override
+    public void start() {
+        super.start();
     }
 }
