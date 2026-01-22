@@ -24,15 +24,6 @@ public class ClientConnection extends SocketConnection {
     }
 
     /**
-     * Create a new ClientConnection from an existing socket.
-     * @param socket the socket for this connection
-     * @throws IOException if there is an I/O exception
-     */
-    protected ClientConnection(Socket socket) throws IOException {
-        super(socket);
-    }
-
-    /**
      * Sets the game client to delegate events to.
      * @param gameClient the game client
      */
@@ -55,9 +46,9 @@ public class ClientConnection extends SocketConnection {
             System.out.println("Parse error: empty command");
             return;
         }
-        
+
         String command = parts[0];
-        
+
         switch (command) {
             case PROTOCOL.HELLO:
                 String serverDesc = parts.length > 1 ? parts[1] : "Unknown";
@@ -107,8 +98,6 @@ public class ClientConnection extends SocketConnection {
     protected void handleDisconnect() {
         gameClient.receiveDisconnect();
     }
-
-    // --- Outgoing message methods ---
 
     public void sendHello(String clientDescription) {
         sendMessage(PROTOCOL.HELLO + PROTOCOL.SEPARATOR + clientDescription);

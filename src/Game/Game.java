@@ -1,7 +1,5 @@
 package Game;
 
-import Server.ClientHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,13 +48,31 @@ public class Game {
 
     /**
      * Does the move on the board if the move is valid.
+     * Notifies listeners after move is applied.
      * @param move The move to be played
+     * @return true if move was valid and applied, false otherwise
      */
-    public void doMove(Move move){
-        if(getValidMoves().contains(move)){
-            availablePieces.remove(currentPieceToPlace);
-            board.setPiece(move.getBoardIndex(), currentPieceToPlace);
+    public boolean doMove(Move move){
+        if(!getValidMoves().contains(move)){
+            return false;
         }
+        
+        // Apply the move
+        availablePieces.remove(currentPieceToPlace);
+        board.setPiece(move.getBoardIndex(), currentPieceToPlace);
+        
+        // Notify listeners
+        notifyMove(move);
+        
+        // Check if game is over
+        if (isGameOver()) {
+            notifyGameOver();
+        }
+        
+        // Switch turns
+        currentTurn = (currentTurn + 1) % 2;
+        
+        return true;
     }
 
     /**
@@ -72,6 +88,14 @@ public class Game {
     }
 
     /**
+     * Checks if the game is over (win or draw).
+     * @return true if game is over
+     */
+    public boolean isGameOver() {
+        return board.hasWinningLine() || board.isFull();
+    }
+
+    /**
      * Function to add a game listener to the game.
      * @param gameListener Implementation of GameListener to be added
      */
@@ -80,13 +104,21 @@ public class Game {
     }
 
     /**
-     * Notifies all listeners to the game about the current state of the game.
+     * Notifies all listeners that a move was made.
+     * @param move the move that was made
      */
-    public void notifyListeners(){
-        if(board.hasWinningLine() || board.isFull()) {
-            for (GameListener gameListener : gameListeners) {
-                gameListener.gameFinished(this);
-            }
+    private void notifyMove(Move move) {
+        for (GameListener listener : gameListeners) {
+            listener.moveMade(move);
+        }
+    }
+
+    /**
+     * Notifies all listeners that the game has finished.
+     */
+    private void notifyGameOver() {
+        for (GameListener listener : gameListeners) {
+            listener.gameFinished(this);
         }
     }
 

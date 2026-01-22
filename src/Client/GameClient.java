@@ -37,7 +37,6 @@ public class GameClient {
      */
     public void start() {
         connection.start();
-        // Send HELLO to initiate handshake
         connection.sendHello("GameClient");
     }
 
