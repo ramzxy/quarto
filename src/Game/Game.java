@@ -118,7 +118,7 @@ public class Game {
      * Notifies all listeners that a move was made.
      * @param move the move that was made
      */
-    private void notifyMove(Move move) {
+    public void notifyMove(Move move) {
         for (GameListener listener : gameListeners) {
             listener.moveMade(move);
         }
@@ -127,7 +127,7 @@ public class Game {
     /**
      * Notifies all listeners that the game has finished.
      */
-    private void notifyGameOver() {
+    public void notifyGameOver() {
         for (GameListener listener : gameListeners) {
             listener.gameFinished(this);
         }
@@ -135,5 +135,19 @@ public class Game {
 
     public Board getBoard(){
         return board;
+    }
+
+    /**
+     * Gets a piece by its ID from the available pieces.
+     * @param pieceId the ID of the piece to find
+     * @return the Piece, or null if not found/already used
+     */
+    public Piece getPieceById(int pieceId) {
+        for (Piece p : availablePieces) {
+            if (p.getId() == pieceId) {
+                return p;
+            }
+        }
+        return null;
     }
 }

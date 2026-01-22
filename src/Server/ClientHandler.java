@@ -106,7 +106,19 @@ public class ClientHandler implements GameListener {
             connection.sendError("Not in a game");
             return;
         }
-        // TODO: currentGame.doFirstMove(pieceId, this);
+        
+        // First move: player picks a piece to give to opponent (MOVE~<pieceId>)
+        Piece piece = currentGame.getPieceById(pieceId);
+        if (piece == null) {
+            connection.sendError("Invalid piece");
+            return;
+        }
+        
+        // Set this piece as the current piece for the opponent to place
+        currentGame.pickCurrentPiece(piece);
+        
+        // Use boardIndex = -1 for first move
+        currentGame.notifyMove(new Move(-1, piece));
     }
 
     public void receiveMove(int position, int pieceId) {
@@ -114,7 +126,16 @@ public class ClientHandler implements GameListener {
             connection.sendError("Not in a game");
             return;
         }
-        // TODO: currentGame.doMove(position, pieceId, this);
+        
+        Piece piece = currentGame.getPieceById(pieceId);
+        if (piece == null) {
+            connection.sendError("Invalid piece");
+            return;
+        }
+        
+        if (!currentGame.doMove(new Move(position, piece))) {
+            connection.sendError("Invalid move");
+        }
     }
 
     public void receiveDisconnect() {
@@ -142,10 +163,14 @@ public class ClientHandler implements GameListener {
 
     @Override
     public void moveMade(Move move) {
-        if (move.getPieceId() >= 0) {
-            connection.sendMove(move.getBoardIndex(), move.getPieceId());
+        // First move has no board position (just piece selection)
+        // Use boardIndex == -1 as sentinel for first move
+        if (move.getBoardIndex() < 0) {
+            // First move: MOVE~<pieceId>
+            connection.sendFirstMove(move.getPieceId());
         } else {
-            connection.sendFirstMove(move.getBoardIndex());
+            // Subsequent move: MOVE~<position>~<pieceId>
+            connection.sendMove(move.getBoardIndex(), move.getPieceId());
         }
     }
 
