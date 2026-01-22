@@ -1,7 +1,7 @@
 package Server;
 
-import Game.Game;
-import Protocol.PROTOCOL;
+import Game.*;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -93,18 +93,17 @@ public class GameManager {
      * @return the newly created Game instance
      */
     public Game createGame(ClientHandler p1, ClientHandler p2) {
-        Game game = new Game(p1, p2);
+        Game game = new Game(new ServerPlayer(p1.getPlayerName()), new ServerPlayer(p2.getPlayerName()));
         activeGames.add(game);
         
-        p1.startGame(game);
-        p2.startGame(game);
+        // Initialize game state for both clients
+        p1.startGame(game, p2.getPlayerName());
+        p2.startGame(game, p1.getPlayerName());
         
         // NEWGAME~player1~player2 - first player moves first
-        p1.sendMessage(PROTOCOL.NEWGAME, p1.getPlayerName(), p2.getPlayerName());
-        p2.sendMessage(PROTOCOL.NEWGAME, p1.getPlayerName(), p2.getPlayerName());
-        
-        // No YOURTURN - first player in NEWGAME goes first (implicit)
-        
+        p1.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
+        p2.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
+                
         return game;
     }
 

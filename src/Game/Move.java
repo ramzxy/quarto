@@ -11,4 +11,8 @@ public class Move {
         this.piece = piece;
         this.boardIndex = boardIndex;
     }
+
+    public int getPieceId() {
+        return piece.getId();
+    }
 }

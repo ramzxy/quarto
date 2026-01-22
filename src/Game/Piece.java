@@ -22,4 +22,6 @@ public class Piece {
         this.isDark = isDark;
         this.isTall = isTall;
     }
+
+    public int getId(){return this.id;}
 }

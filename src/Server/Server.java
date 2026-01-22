@@ -4,12 +4,14 @@ import Networking.SocketServer;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
 /**
  * Main server class that accepts TCP connections and manages client sessions.
  * Extends SocketServer to handle connection acceptance.
+ * Each client is handled in its own thread.
  */
 public class Server extends SocketServer {
     private volatile boolean running = false;
@@ -23,7 +25,7 @@ public class Server extends SocketServer {
      */
     public Server(int port) throws IOException {
         super(port);
-        this.clients = new ArrayList<>();
+        this.clients = Collections.synchronizedList(new ArrayList<>());
         this.gameManager = new GameManager();
     }
 
