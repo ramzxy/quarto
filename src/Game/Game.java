@@ -68,11 +68,22 @@ public class Game {
         if (isGameOver()) {
             notifyGameOver();
         }
-        
+        // TODO: Before moving the turn, get the player to pick a piece from the available list to be put
         // Switch turns
         currentTurn = (currentTurn + 1) % 2;
         
         return true;
+    }
+
+    /**
+     * Before ending a turn, player has to pick the piece for the opponent to play.
+     * @param piece the piece that is intended to be played next.
+     */
+    public void pickCurrentPiece(Piece piece){
+        if(availablePieces.contains(piece)){
+            currentPieceToPlace = piece;
+            availablePieces.remove(piece);
+        }else System.out.println("Piece is not valid, it has been used.");
     }
 
     /**

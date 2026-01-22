@@ -103,7 +103,7 @@ public class ClientConnection extends SocketConnection {
         sendMessage(PROTOCOL.HELLO + PROTOCOL.SEPARATOR + clientDescription);
     }
 
-    public void sendLogin(String username) {
+    public void         sendLogin(String username) {
         sendMessage(PROTOCOL.LOGIN + PROTOCOL.SEPARATOR + username);
     }
 
