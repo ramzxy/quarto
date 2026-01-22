@@ -6,8 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class GameTest {
-    HumanPlayer hp1 = new HumanPlayer();
-    HumanPlayer hp2 = new HumanPlayer();
+    HumanPlayer hp1 = new HumanPlayer("Player 1");
+    HumanPlayer hp2 = new HumanPlayer("Player 2");
     ComputerPlayer cp2;
     private Game game = new Game(hp1, hp2);
 
