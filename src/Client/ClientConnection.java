@@ -67,7 +67,7 @@ public class ClientConnection extends SocketConnection {
                 break;
             case PROTOCOL.NEWGAME:
                 if (parts.length >= 3) {
-                    gameClient.receiveNewGame(parts[1], parts[2]);
+                    gameClient.receiveNewGame(new HumanPlayer(parts[1]), new HumanPlayer(parts[2]));
                 }
                 break;
             case PROTOCOL.MOVE:

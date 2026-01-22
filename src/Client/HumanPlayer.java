@@ -12,7 +12,7 @@ public class HumanPlayer extends AbstractPlayer {
     }
     @Override
     public Move determineMove(Game game) {
-        //TODO: connect this class to ClientHandler
+
         return null;
     }
 }

@@ -1,6 +1,8 @@
 package Client;
 
 import Game.Game;
+import Game.AbstractPlayer;
+import Game.Move;
 
 import java.io.IOException;
 
@@ -10,7 +12,7 @@ import java.io.IOException;
  */
 public class GameClient {
     private ClientConnection connection;
-    private String playerName;
+    private AbstractPlayer player;
     private Game localGame;
     private ClientView view;
     private boolean loggedIn = false;
@@ -25,8 +27,8 @@ public class GameClient {
      * @param view the view for displaying game state
      * @throws IOException if connection fails
      */
-    public GameClient(String host, int port, String playerName, ClientView view) throws IOException {
-        this.playerName = playerName;
+    public GameClient(String host, int port, AbstractPlayer playerName, ClientView view) throws IOException {
+        this.player = playerName;
         this.view = view;
         this.connection = new ClientConnection(host, port);
         this.connection.setGameClient(this);
@@ -45,17 +47,17 @@ public class GameClient {
     public void receiveHello(String serverDescription) {
         System.out.println("Connected to: " + serverDescription);
         // Auto-login after handshake
-        connection.sendLogin(playerName);
+        connection.sendLogin(player.getName());
     }
 
     public void receiveLogin() {
         loggedIn = true;
-        System.out.println("Logged in as: " + playerName);
-        view.showLoggedIn(playerName);
+        System.out.println("Logged in as: " + player);
+        view.showLoggedIn(player.getName());
     }
 
     public void receiveAlreadyLoggedIn() {
-        System.out.println("Username '" + playerName + "' is already taken");
+        System.out.println("Username '" + player + "' is already taken");
         view.showError("Username already taken");
     }
 
@@ -63,24 +65,25 @@ public class GameClient {
         view.showUserList(users);
     }
 
-    public void receiveNewGame(String player1, String player2) {
-        boolean iAmFirst = player1.equals(playerName);
+    public void receiveNewGame(AbstractPlayer player1, AbstractPlayer player2) {
+        boolean iAmFirst = player1.equals(player);
         
         inGame = true;
         inQueue = false;
-        localGame = new Game(); // Create fresh game
+        localGame = new Game(player1, player2); // Create fresh game
         
-        System.out.println("Game started! " + player1 + " vs " + player2);
-        view.showGameStarted(player1, player2, iAmFirst);
+        System.out.println("Game started! " + player1.getName() + " vs " + player2.getName());
+        view.showGameStarted(player1.getName(), player2.getName(), iAmFirst);
     }
 
     public void receiveFirstMove(int pieceId) {
-        // TODO: Apply move to localGame
+        // TODO: Apply move to localGame needs position and pieceId because the doMove of localGame
         view.showMove(new String[]{"MOVE", String.valueOf(pieceId)});
     }
 
     public void receiveMove(int position, int pieceId) {
         // TODO: Apply move to localGame
+        localGame.doMove(new Move(position, localGame.getBoard().getPiece(pieceId)));
         view.showMove(new String[]{"MOVE", String.valueOf(position), String.valueOf(pieceId)});
     }
 
@@ -183,7 +186,7 @@ public class GameClient {
         return localGame;
     }
 
-    public String getPlayerName() {
-        return playerName;
+    public AbstractPlayer getPlayer() {
+        return player;
     }
 }
