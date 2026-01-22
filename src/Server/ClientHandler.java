@@ -236,7 +236,7 @@ public class ClientHandler implements Runnable, GameListener {
     }
     
     /**
-     * Sets the current game for this player
+     * Sets the current game for this player.
      */
     public void setCurrentGame(Game game) {
         this.currentGame = game;

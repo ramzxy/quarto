@@ -1,12 +1,14 @@
 package Game;
 
+import Server.ClientHandler;
+
 import java.util.List;
 
 public class Game {
     private Board board;
     private List<Piece> availablePieces;
     private Piece currentPieceToPlace;
-    private AbstractPlayer[] playerList;
+    private ClientHandler[] playerList;
     private int currentTurn;
     private List<GameListener> gameListeners;
 
@@ -15,9 +17,9 @@ public class Game {
     /**
      * Creates an instance of Quarto game with 2 players.
      */
-    public Game(AbstractPlayer player1, AbstractPlayer player2){
+    public Game(ClientHandler player1, ClientHandler player2){
         board = new Board();
-        playerList = new AbstractPlayer[]{player1, player2};
+        playerList = new ClientHandler[]{player1, player2};
 
         for(int i = 0; i < PIECE_NUMBER; i++){
             //Turns i into list of booleans that can be put inside piece's constructor
