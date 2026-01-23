@@ -1,20 +1,28 @@
 package Server;
 
-import java.io.IOException;
+import java.util.Scanner;
 
 /**
  * Main entry point for the Server application.
  */
 public class ServerApplication {
+    private static final int DEFAULT_PORT = 6969;
+
     public static void main(String[] args) {
-        int port = 1337;
+        Scanner scanner = new Scanner(System.in);
+        int port;
         
-        if (args.length > 0) {
+        System.out.print("Enter port (default " + DEFAULT_PORT + "): ");
+        String input = scanner.nextLine().trim();
+        
+        if (input.isEmpty()) {
+            port = DEFAULT_PORT;
+        } else {
             try {
-                port = Integer.parseInt(args[0]);
+                port = Integer.parseInt(input);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid port number: " + args[0]);
-                System.exit(1);
+                System.err.println("Invalid port number: " + input + ". Using default port " + DEFAULT_PORT);
+                port = DEFAULT_PORT;
             }
         }
         
