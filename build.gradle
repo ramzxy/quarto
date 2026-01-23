@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+}
+
+group = 'quarto'
+version = '1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+// Encoding for source files
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Create client JAR
+tasks.register('clientJar', Jar) {
+    archiveBaseName = 'client'
+    archiveVersion = ''
+    destinationDirectory = file("$projectDir")
+    manifest {
+        attributes 'Main-Class': 'Client.ClientApplication'
+    }
+    from sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Create server JAR
+tasks.register('serverJar', Jar) {
+    archiveBaseName = 'server'
+    archiveVersion = ''
+    destinationDirectory = file("$projectDir")
+    manifest {
+        attributes 'Main-Class': 'Server.ServerApplication'
+    }
+    from sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Default task: build both JARs
+defaultTasks 'clientJar', 'serverJar'
+
+// Also make 'build' create the JARs
+build.dependsOn clientJar, serverJar
