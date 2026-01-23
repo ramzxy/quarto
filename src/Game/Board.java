@@ -147,13 +147,17 @@ public class Board {
      */
     public boolean isFull(){
         for (Piece piece : fields) {
-            if (piece != null) {
+            if (piece == null) {
                 return false;
             }
         }
         return true;
     }
 
+    /**
+     * Copies the board with another pointer.
+     * @return the copy of the board
+     */
     public Board copy(){
         Board copyOfBoard = this;
         return copyOfBoard;
