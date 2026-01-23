@@ -99,6 +99,17 @@ public class Game {
     }
 
     /**
+     * Checks if a specific move is valid.
+     * @param move the move to check
+     * @return true if the move is allowed
+     */
+    public boolean isValidMove(Move move) {
+        if (move == null) return false;
+        return move.getBoardIndex() >= 0 && move.getBoardIndex() < board.BOARD_SIZE * board.BOARD_SIZE 
+               && board.getPiece(move.getBoardIndex()) == null;
+    }
+
+    /**
      * Checks if the game is over (win or draw).
      * @return true if game is over
      */

@@ -12,23 +12,23 @@ import java.io.IOException;
  * Receives parsed protocol events from ClientConnection.
  */
 public class GameClient {
-    private ClientConnection connection;
-    private AbstractPlayer player;
-    private Game localGame;
-    private TUI view;
-    private boolean loggedIn = false;
-    private boolean inQueue = false;
-    private boolean inGame = false;
+    protected ClientConnection connection;
+    protected AbstractPlayer player;
+    protected Game localGame;
+    protected ClientView view;
+    protected boolean loggedIn = false;
+    protected boolean inQueue = false;
+    protected boolean inGame = false;
 
     /**
      * Creates a new GameClient and connects to the specified server.
      * Username is prompted after connection is established.
      * @param host the server host
      * @param port the server port
-     * @param view the TUI for displaying game state and prompting user
+     * @param view the View for displaying game state and prompting user
      * @throws IOException if connection fails
      */
-    public GameClient(String host, int port, TUI view) throws IOException {
+    public GameClient(String host, int port, ClientView view) throws IOException {
         this.view = view;
         this.connection = new ClientConnection(host, port);
         this.connection.setGameClient(this);
@@ -46,9 +46,10 @@ public class GameClient {
 
     public void receiveHello(String serverDescription) {
         System.out.println("Connected to server: " + serverDescription);
-        
-        // Prompt for username after connection
-        String username = view.promptUsername();
+        System.out.println("Type 'login' to sign in.");
+    }
+    
+    public void login(String username) {
         this.player = new HumanPlayer(username);
         connection.sendLogin(username);
     }
