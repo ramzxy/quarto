@@ -161,17 +161,29 @@ public class Board {
 
     @Override
     public String toString() {
+        return toString(null);
+    }
+
+    /**
+     * Generates a string representation of the board with available pieces shown below.
+     * @param availablePieces list of pieces still available, or null to hide
+     * @return formatted board string
+     */
+    public String toString(java.util.List<Piece> availablePieces) {
         StringBuilder sb = new StringBuilder();
-        sb.append("      0       1       2       3   (Cols)\n");
-        sb.append("  +-------+-------+-------+-------+\n");
         
+        // Board Header
+        sb.append("       0       1       2       3\n");
+        String divider = "   +-------+-------+-------+-------+";
+        sb.append(divider).append("\n");
+        
+        // Board rows
         for (int row = 0; row < BOARD_SIZE; row++) {
-            sb.append(row).append(" |");
+            sb.append(" ").append(row).append(" |");
             for (int col = 0; col < BOARD_SIZE; col++) {
                 Piece p = getPiece(row * BOARD_SIZE + col);
                 String pStr;
                 if (p == null) {
-                    // Empty cell with coordinates for easier reading
                     int idx = row * BOARD_SIZE + col;
                     pStr = " " + idx + (idx < 10 ? " " : "") + "  ";
                 } else {
@@ -180,8 +192,65 @@ public class Board {
                 sb.append(" ").append(pStr).append(" |");
             }
             sb.append("\n");
-            sb.append("  +-------+-------+-------+-------+\n");
+            sb.append(divider).append("\n");
         }
+
+        // Available pieces section
+        if (availablePieces != null && !availablePieces.isEmpty()) {
+            sb.append("\n");
+            sb.append("   ╔═══════════════════════════════════════════════════╗\n");
+            sb.append("   ║            AVAILABLE PIECES (").append(String.format("%2d", availablePieces.size())).append(" left)             ║\n");
+            sb.append("   ╠═══════════════════════════════════════════════════╣\n");
+            
+            // Display pieces in rows of 4
+            for (int pieceRow = 0; pieceRow < 4; pieceRow++) {
+                StringBuilder idLine = new StringBuilder("   ║  ");
+                StringBuilder pieceLine = new StringBuilder("   ║  ");
+                
+                for (int i = 0; i < 4; i++) {
+                    int pieceId = pieceRow * 4 + i;
+                    Piece p = findPieceById(availablePieces, pieceId);
+                    if (p != null) {
+                        idLine.append(String.format("ID:%-2d ", pieceId));
+                        pieceLine.append(p.toString()).append("  ");
+                    } else {
+                        idLine.append("  --  ");
+                        pieceLine.append(" ---  ");
+                    }
+                    if (i < 3) {
+                        idLine.append("│ ");
+                        pieceLine.append("│ ");
+                    }
+                }
+                idLine.append("     ║");
+                pieceLine.append("     ║");
+                
+                sb.append(idLine).append("\n");
+                sb.append(pieceLine).append("\n");
+                if (pieceRow < 3) {
+                    sb.append("   ╟───────────────────────────────────────────────────╢\n");
+                }
+            }
+            sb.append("   ╚═══════════════════════════════════════════════════╝\n");
+            
+            // Legend
+            sb.append("\n");
+            sb.append("   Legend: Shape: () Round, [] Square │ Color: D Dark, L Light\n");
+            sb.append("           Fill: * Solid, ░ Hollow   │ Height: ^ Tall, _ Short\n");
+        }
+        
         return sb.toString();
+    }
+
+    /**
+     * Helper to find a piece by ID in a list.
+     */
+    private Piece findPieceById(java.util.List<Piece> pieces, int id) {
+        for (Piece p : pieces) {
+            if (p.getId() == id) {
+                return p;
+            }
+        }
+        return null;
     }
 }

@@ -175,4 +175,12 @@ public class Game {
     public String getCurrentPlayerName() {
         return playerList[currentTurn].getName();
     }
+
+    /**
+     * Gets the list of pieces still available to be picked.
+     * @return list of available pieces
+     */
+    public List<Piece> getAvailablePieces() {
+        return new ArrayList<>(availablePieces);
+    }
 }

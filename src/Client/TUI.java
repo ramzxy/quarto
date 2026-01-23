@@ -30,7 +30,7 @@ public class TUI implements ClientView {
         System.out.println(ConsoleUtils.BRIGHT_BLUE + "       QUARTO GAME BOARD" + ConsoleUtils.RESET);
         System.out.println(ConsoleUtils.BRIGHT_BLUE + "==================================" + ConsoleUtils.RESET);
         
-        System.out.println(game.getBoard().toString());
+        System.out.println(game.getBoard().toString(game.getAvailablePieces()));
         
         System.out.println("----------------------------------");
         Piece currentPiece = game.getCurrentPiece();
