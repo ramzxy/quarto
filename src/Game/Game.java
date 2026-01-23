@@ -180,6 +180,10 @@ public class Game {
         return board;
     }
 
+    public List<GameListener> getGameListeners() {
+        return gameListeners;
+    }
+
     /**
      * Gets the current piece that must be placed.
      * @return the piece to be placed, or null if no piece is set
@@ -224,6 +228,6 @@ public class Game {
      * @return list of available pieces
      */
     public List<Piece> getAvailablePieces() {
-        return new ArrayList<>(availablePieces);
+        return availablePieces;
     }
 }
