@@ -55,13 +55,43 @@ public class Game {
      * @return true if move was valid and applied, false otherwise
      */
     public boolean doMove(Move move){
-        if(!getValidMoves().contains(move)){
-            return false;
+        if (move == null) return false;
+
+        // Special case: First move (selecting piece only, no placement)
+        if (move.getBoardIndex() == -1) {
+             if (move.getNextPiece() == null) return false; // Must pick a piece
+             
+             // Check if next piece is valid
+             if (!availablePieces.contains(move.getNextPiece())) return false;
+             
+             pickCurrentPiece(move.getNextPiece());
+             notifyMove(move);
+
+             currentTurn = (currentTurn + 1) % 2;
+             return true;
         }
+
+        // Standard move: Validate Placement using helper
+        if (!isValidMove(move)) return false;
         
-        // Apply the move
+        // Validate Piece placed (must match currentPieceToPlace)
+        if (currentPieceToPlace == null) return false; 
+        
+
+        // Apply the move (Placement)
         availablePieces.remove(currentPieceToPlace);
         board.setPiece(move.getBoardIndex(), currentPieceToPlace);
+        
+        // Handle Next Piece Selection (if provided)
+        if (move.getNextPiece() != null) {
+            if (!availablePieces.contains(move.getNextPiece())) {
+                // Invalid next piece -> Revert placement
+                board.setPiece(move.getBoardIndex(), null); 
+                availablePieces.add(currentPieceToPlace);
+                return false;
+            }
+            pickCurrentPiece(move.getNextPiece());
+        }
         
         // Notify listeners
         notifyMove(move);
@@ -70,11 +100,13 @@ public class Game {
         if (isGameOver()) {
             notifyGameOver();
         }
-        // Switch turns (piece picking is handled externally after doMove)
+        // Switch turns
         currentTurn = (currentTurn + 1) % 2;
         
         return true;
     }
+
+
 
     /**
      * Before ending a turn, player has to pick the piece for the opponent to play.

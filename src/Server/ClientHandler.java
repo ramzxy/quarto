@@ -116,10 +116,8 @@ public class ClientHandler implements GameListener {
         }
         
         // Set this piece as the current piece for the opponent to place
-        currentGame.pickCurrentPiece(piece);
-        
-        // Use boardIndex = -1 for first move
-        currentGame.notifyMove(new Move(-1, piece));
+        // Use boardIndex = -1 for first move. No piece placed (null). Next piece is the one chosen.
+        currentGame.doMove(new Move(-1, null, piece));
     }
 
     public void receiveMove(int position, int nextPieceId) {
@@ -135,12 +133,7 @@ public class ClientHandler implements GameListener {
             return;
         }
         
-        // Place the current piece at the given position
-        Move move = new Move(position, currentPiece);
-        if (!currentGame.doMove(move)) {
-            connection.sendError("Invalid move");
-            return;
-        }
+        // Place the current piece at the given position and pick next piece
         
         if (nextPieceId >= 0 && nextPieceId <= 15) {
             // Normal move: pick piece for opponent
@@ -149,19 +142,31 @@ public class ClientHandler implements GameListener {
                 connection.sendError("Invalid piece");
                 return;
             }
-            currentGame.pickCurrentPiece(nextPiece);
-        } else if (nextPieceId == PROTOCOL.CLAIM_QUARTO) {
-            // Player claims Quarto
-            if (currentGame.getBoard().hasWinningLine()) {
-                gameManager.endGame(currentGame, PROTOCOL.VICTORY, playerName);
-            } else {
-                gameManager.endGame(currentGame, PROTOCOL.VICTORY, currentGame.getOpponentName());
+            
+            Move move = new Move(position, currentPiece, nextPiece);
+            if (!currentGame.doMove(move)) {
+                 connection.sendError("Invalid move");
+                 return;
             }
-        } else if (nextPieceId == PROTOCOL.FINAL_PIECE_NO_CLAIM) {
-            // Final piece placed without claiming Quarto
-            // Game ends in draw (board full, no winner claimed)
-            if (currentGame.isGameOver()) {
-                gameManager.endGame(currentGame, PROTOCOL.DRAW, null);
+        } else {
+ 
+             Move move = new Move(position, currentPiece, null); // No next piece
+             if (!currentGame.doMove(move)) {
+                 connection.sendError("Invalid move");
+                 return;
+             }
+             
+             if (nextPieceId == PROTOCOL.CLAIM_QUARTO) {
+                // Player claims Quarto
+                if (currentGame.getBoard().hasWinningLine()) {
+                    gameManager.endGame(currentGame, PROTOCOL.VICTORY, playerName);
+                } else {
+                    gameManager.endGame(currentGame, PROTOCOL.VICTORY, currentGame.getOpponentName());
+                }
+            } else if (nextPieceId == PROTOCOL.FINAL_PIECE_NO_CLAIM) {
+                if (currentGame.isGameOver()) {
+                    gameManager.endGame(currentGame, PROTOCOL.DRAW, null);
+                }
             }
         }
     }
@@ -195,10 +200,15 @@ public class ClientHandler implements GameListener {
         // Use boardIndex == -1 as sentinel for first move
         if (move.getBoardIndex() < 0) {
             // First move: MOVE~<pieceId>
-            connection.sendFirstMove(move.getPieceId());
+            // The piece chosen is in getNextPiece() because construction was (-1, null, piece)
+            if (move.getNextPiece() != null) {
+                connection.sendFirstMove(move.getNextPiece().getId());
+            }
         } else {
             // Subsequent move: MOVE~<position>~<pieceId>
-            connection.sendMove(move.getBoardIndex(), move.getPieceId());
+            // The piece chosen for next player is getNextPiece()
+            int nextPieceId = (move.getNextPiece() != null) ? move.getNextPiece().getId() : -1;
+            connection.sendMove(move.getBoardIndex(), nextPieceId);
         }
     }
 

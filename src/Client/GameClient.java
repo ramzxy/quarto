@@ -86,7 +86,8 @@ public class GameClient {
     public void receiveFirstMove(int pieceId) {
         Piece piece = localGame.getPieceById(pieceId);
         if (piece != null) {
-            localGame.pickCurrentPiece(piece);
+            // Use doMove with special first move syntax
+            localGame.doMove(new Move(-1, null, piece));
         } else {
             System.err.println("Received unknown piece ID: " + pieceId);
         }
@@ -98,16 +99,14 @@ public class GameClient {
     public void receiveMove(int position, int pieceId) {
         // Place the piece we were holding at position
         Piece pieceToPlace = localGame.getCurrentPiece();
-        if (pieceToPlace != null) {
-            localGame.doMove(new Move(position, pieceToPlace));
-        }
         
         // The opponent picked 'pieceId' for us to play next
         Piece nextPiece = localGame.getPieceById(pieceId);
-        if (nextPiece != null) {
-            localGame.pickCurrentPiece(nextPiece);
+        
+        if (pieceToPlace != null) {
+            localGame.doMove(new Move(position, pieceToPlace, nextPiece));
         }
-
+        
         view.showMove(new String[]{"MOVE", String.valueOf(position), String.valueOf(pieceId)});
         view.displayGame(localGame);
     }
