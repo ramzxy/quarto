@@ -135,12 +135,12 @@ public class GeniusStrategy implements Strategy {
                 int oldIdx = symMap[newIdx];
                 if ((occupied & (1 << oldIdx)) != 0) {
                     // Reconstruct piece ID from bitboards
-                    // bit0=dark, bit1=tall, bit2=square(!round), bit3=hollow(!solid)
+                    // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
                     int pieceId = 0;
-                    if ((dark & (1 << oldIdx)) != 0) pieceId |= 1;
-                    if ((tall & (1 << oldIdx)) != 0) pieceId |= 2;
-                    if ((round & (1 << oldIdx)) == 0) pieceId |= 4;  // square = !round
-                    if ((solid & (1 << oldIdx)) == 0) pieceId |= 8;  // hollow = !solid
+                    if ((dark & (1 << oldIdx)) != 0) pieceId |= 1;   // bit 0 = dark
+                    if ((tall & (1 << oldIdx)) != 0) pieceId |= 2;   // bit 1 = tall
+                    if ((round & (1 << oldIdx)) == 0) pieceId |= 4;  // bit 2 = square (!round)
+                    if ((solid & (1 << oldIdx)) == 0) pieceId |= 8;  // bit 3 = hollow (!solid)
                     h ^= Z_SQUARE_PIECE[newIdx][pieceId];
                 }
             }
@@ -271,13 +271,27 @@ public class GeniusStrategy implements Strategy {
             return pickBestOpeningPiece(available, game);
         }
 
-        // 4. Iterative Deepening
+        // 4. Iterative Deepening with Endgame Extension
         long startTime = System.currentTimeMillis();
-        long timeLimit = 1000; // 1 second max
+        long timeLimit = 2000; // 2 seconds max
+        
+        // Count available pieces to determine max depth
+        // Endgame: fewer pieces = smaller branching factor = can search deeper
+        int numAvailable = Integer.bitCount(available);
+        int maxDepth;
+        if (numAvailable <= 4) {
+            maxDepth = 12; // Very deep for endgame - detect parity traps
+        } else if (numAvailable <= 6) {
+            maxDepth = 8;  // Deep search for late game
+        } else if (numAvailable <= 10) {
+            maxDepth = 6;  // Medium depth
+        } else {
+            maxDepth = 4;  // Standard opening/early game
+        }
         
         Move bestMove = null;
         
-        for (int depth = 1; depth <= 4; depth++) {
+        for (int depth = 1; depth <= maxDepth; depth++) {
             if (System.currentTimeMillis() - startTime > timeLimit) break;
             
             long searchResult = searchRoot(depth, tall, round, solid, dark, occupied, available, pieceToPlaceId);
@@ -299,7 +313,8 @@ public class GeniusStrategy implements Strategy {
                 bestMove = new Move(bestSq, pToPlace, nextP);
             }
             
-            if (score > 9000) break; 
+            // Early termination if we found a winning move or are losing badly
+            if (score > 9000 || score < -9000) break; 
         }
 
         if (bestMove == null) {
@@ -330,7 +345,7 @@ public class GeniusStrategy implements Strategy {
         boolean isOpening = (occupied == 0);
         
         // Decode piece attributes once outside the loop
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
+        // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
         boolean isDark = ((pieceId & 1) != 0);
         boolean isTall = ((pieceId & 2) != 0);
         boolean isRound = ((pieceId & 4) == 0);  // NOT square
@@ -364,8 +379,17 @@ public class GeniusStrategy implements Strategy {
                      continue; 
                 }
 
+                // First pass: find safe pieces (opponent can't immediately win)
+                int safePiece = -1;
                 for (int nextP = 0; nextP < 16; nextP++) {
                     if ((nAvail & (1 << nextP)) != 0) {
+                        // Critical check: never give a piece that immediately wins for opponent
+                        if (canWinWithPiece(nTall, nRound, nSolid, nDark, nOcc, nextP)) {
+                            // This piece is poison - skip it unless no alternatives
+                            continue;
+                        }
+                        if (safePiece == -1) safePiece = nextP; // Track first safe piece
+                        
                         int val = -negamax(depth - 1, -beta, -alpha, nTall, nRound, nSolid, nDark, nOcc, nAvail & ~(1 << nextP), nextP);
                         
                         if (val > bestScore) {
@@ -375,6 +399,21 @@ public class GeniusStrategy implements Strategy {
                         }
                         if (bestScore > alpha) alpha = bestScore;
                         if (alpha >= beta) break; 
+                    }
+                }
+                
+                // Fallback: if all pieces are poison (forced loss), pick the "best" losing move
+                if (bestNextP == -1 && safePiece == -1) {
+                    // We have to give a losing piece - search all to find least bad option
+                    for (int nextP = 0; nextP < 16; nextP++) {
+                        if ((nAvail & (1 << nextP)) != 0) {
+                            int val = -negamax(depth - 1, -beta, -alpha, nTall, nRound, nSolid, nDark, nOcc, nAvail & ~(1 << nextP), nextP);
+                            if (val > bestScore) {
+                                bestScore = val;
+                                bestSq = sq;
+                                bestNextP = nextP;
+                            }
+                        }
                     }
                 }
             }
@@ -433,7 +472,7 @@ public class GeniusStrategy implements Strategy {
         int bestNextP = -1;
         
         // Decode piece attributes once outside the loop
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
+        // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
         boolean isDark = ((pieceId & 1) != 0);
         boolean isTall = ((pieceId & 2) != 0);
         boolean isRound = ((pieceId & 4) == 0);  // NOT square
@@ -539,11 +578,11 @@ public class GeniusStrategy implements Strategy {
         int safety = 0;
         int traps = 0;
         
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
-        boolean isDark = ((pieceId & 1) != 0);
-        boolean isTall = ((pieceId & 2) != 0);
-        boolean isRound = ((pieceId & 4) == 0);  // NOT square
-        boolean isSolid = ((pieceId & 8) == 0);  // NOT hollow
+        // Correct bit mapping: bit0=tall, bit1=dark, bit2=hollow, bit3=round
+        boolean isTall = ((pieceId & 1) != 0);   // bit 0
+        boolean isDark = ((pieceId & 2) != 0);   // bit 1
+        boolean isSolid = ((pieceId & 4) == 0);  // bit 2 = hollow, so solid = !hollow
+        boolean isRound = ((pieceId & 8) != 0);  // bit 3
 
         for (int sq = 0; sq < 16; sq++) {
             if ((occupied & (1 << sq)) == 0) {
@@ -582,11 +621,11 @@ public class GeniusStrategy implements Strategy {
     }
 
     private boolean canWinWithPiece(int tall, int round, int solid, int dark, int occupied, int pieceId) {
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
-        boolean isDark = ((pieceId & 1) != 0);
-        boolean isTall = ((pieceId & 2) != 0);
-        boolean isRound = ((pieceId & 4) == 0);  // NOT square
-        boolean isSolid = ((pieceId & 8) == 0);  // NOT hollow
+        // Correct bit mapping: bit0=tall, bit1=dark, bit2=hollow, bit3=round
+        boolean isTall = ((pieceId & 1) != 0);   // bit 0
+        boolean isDark = ((pieceId & 2) != 0);   // bit 1
+        boolean isSolid = ((pieceId & 4) == 0);  // bit 2 = hollow, so solid = !hollow
+        boolean isRound = ((pieceId & 8) != 0);  // bit 3
         
         for (int sq = 0; sq < 16; sq++) {
              if ((occupied & (1 << sq)) == 0) {
@@ -602,11 +641,11 @@ public class GeniusStrategy implements Strategy {
     }
 
     private boolean canForceWin(int tall, int round, int solid, int dark, int occupied, int available, int pieceId) {
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
-        boolean isDark = ((pieceId & 1) != 0);
-        boolean isTall = ((pieceId & 2) != 0);
-        boolean isRound = ((pieceId & 4) == 0);  // NOT square
-        boolean isSolid = ((pieceId & 8) == 0);  // NOT hollow
+        // Correct bit mapping: bit0=tall, bit1=dark, bit2=hollow, bit3=round
+        boolean isTall = ((pieceId & 1) != 0);   // bit 0
+        boolean isDark = ((pieceId & 2) != 0);   // bit 1
+        boolean isSolid = ((pieceId & 4) == 0);  // bit 2 = hollow, so solid = !hollow
+        boolean isRound = ((pieceId & 8) != 0);  // bit 3
 
         for (int sq2 = 0; sq2 < 16; sq2++) {
              if ((occupied & (1 << sq2)) == 0) {
@@ -634,11 +673,11 @@ public class GeniusStrategy implements Strategy {
     }
     
     private boolean opponentHasSafeMove(int tall, int round, int solid, int dark, int occupied, int available, int pieceId) {
-        // Correct bit mapping: bit0=dark, bit1=tall, bit2=square, bit3=hollow
-        boolean isDark = ((pieceId & 1) != 0);
-        boolean isTall = ((pieceId & 2) != 0);
-        boolean isRound = ((pieceId & 4) == 0);  // NOT square
-        boolean isSolid = ((pieceId & 8) == 0);  // NOT hollow
+        // Correct bit mapping: bit0=tall, bit1=dark, bit2=hollow, bit3=round
+        boolean isTall = ((pieceId & 1) != 0);   // bit 0
+        boolean isDark = ((pieceId & 2) != 0);   // bit 1
+        boolean isSolid = ((pieceId & 4) == 0);  // bit 2 = hollow, so solid = !hollow
+        boolean isRound = ((pieceId & 8) != 0);  // bit 3
 
         for (int sq = 0; sq < 16; sq++) {
              if ((occupied & (1 << sq)) == 0) {

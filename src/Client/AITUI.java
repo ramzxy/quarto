@@ -71,6 +71,9 @@ public class AITUI implements ClientView {
         Game game = client.getLocalGame();
         if (game == null) return;
 
+        // Don't make a move if the game is already over
+        if (game.isGameOver()) return;
+
         // If it is our turn to place a piece
         if (game.getCurrentPlayerName().equals(client.getPlayer().getName())) {
             // We have a piece to place?

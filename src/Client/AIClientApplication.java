@@ -1,7 +1,7 @@
 package Client;
 
+import ai.GeniusStrategy;
 import ai.MinimaxStrategy;
-import ai.RandomStrategy;
 import ai.SmartStrategy;
 import ai.Strategy;
 
@@ -39,9 +39,9 @@ public class AIClientApplication {
             view.setUsername(username);
 
             System.out.println("\nSelect Difficulty:");
-            System.out.println("1. Easy (Random)");
-            System.out.println("2. Medium (Smart)");
-            System.out.println("3. Hard (Minimax)");
+            System.out.println("1. Easy (Smart)");
+            System.out.println("2. Medium (Minimax)");
+            System.out.println("3. Hard (Genius)");
             System.out.print("Choice (1-3): ");
             
             int choice = 0;
@@ -52,17 +52,17 @@ public class AIClientApplication {
             Strategy strategy;
             switch (choice) {
                 case 2:
-                    strategy = new SmartStrategy();
-                    break;
-                case 3:
                      System.out.print("Enter thinking time in ms (default 2000): ");
                      String timeInput = scanner.nextLine().trim();
                      long time = timeInput.isEmpty() ? 2000 : Long.parseLong(timeInput);
                      strategy = new MinimaxStrategy(4, time);
                      break;
+                case 3:
+                    strategy = new GeniusStrategy();
+                    break;
                 case 1:
                 default:
-                    strategy = new RandomStrategy();
+                    strategy = new SmartStrategy();
                     break;
             }
             

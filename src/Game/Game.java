@@ -25,17 +25,14 @@ public class Game {
         gameListeners = new ArrayList<>();
 
         for(int i = 0; i < PIECE_NUMBER; i++){
-            //Turns i into list of booleans that can be put inside piece's constructor
-            boolean[] flags = new boolean[4];
-
-            for(int j = 0; j < 4; j++){
-                /*Right shifts the binary representation
-                Take the least significant position, make it into boolean
-                Put it from the last in the list
-                */
-                flags[3-j] = ((i >> j) & 1) == 1;
-            }
-            availablePieces.add(new Piece(i, flags[1], flags[0], flags[3], flags[2]));
+            // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
+            boolean isDark = (i & 1) != 0;
+            boolean isTall = (i & 2) != 0;
+            boolean isSquare = (i & 4) != 0;
+            boolean isHollow = (i & 8) != 0;
+            
+            // Constructor: Piece(id, isHollow, isRound, isTall, isDark)
+            availablePieces.add(new Piece(i, isHollow, !isSquare, isTall, isDark));
         }
     }
 
