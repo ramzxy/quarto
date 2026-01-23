@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 public class BoardTest {
     private Board board;
     private Piece[] pieces;
@@ -29,7 +27,7 @@ public class BoardTest {
                 */
                 flags[3-j] = ((j >> 1) & 1) == 1;
             }
-            pieces[i] = new Piece(i, flags[0], flags[1], flags[2], flags[3]);
+            pieces[i] = new Piece(i, flags[1], flags[0], flags[3], flags[2]);
         }
     }
 

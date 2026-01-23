@@ -9,18 +9,19 @@ public class Piece {
 
     /**
      * Constructs a unique piece based on their characteristics and giving each one an id.
-     * @param id unique id given to every piece
-     * @param isRound round or square
-     * @param isSolid solid or dotted
-     * @param isDark dark or light-colored
-     * @param isTall tall or short
+     *
+     * @param id       unique id given to every piece
+     * @param isHollow solid or hollow
+     * @param isRound  round or square
+     * @param isLarge  tall or short
+     * @param isDark   dark or light-colored
      */
-    public Piece(int id, boolean isRound, boolean isSolid, boolean isDark, boolean isTall) {
+    public Piece(int id, boolean isHollow, boolean isRound, boolean isLarge, boolean isDark) {
         this.id = id;
         this.isRound = isRound;
-        this.isSolid = isSolid;
+        this.isSolid = isHollow;
         this.isDark = isDark;
-        this.isTall = isTall;
+        this.isTall = isLarge;
     }
 
     public int getId(){return this.id;}
