@@ -4,7 +4,7 @@ public class Piece {
     public final int id;
     public final boolean isTall;
     public final boolean isRound;
-    public final boolean isSolid;
+    public final boolean isHollow;
     public final boolean isDark;
 
     /**
@@ -19,7 +19,7 @@ public class Piece {
     public Piece(int id, boolean isHollow, boolean isRound, boolean isLarge, boolean isDark) {
         this.id = id;
         this.isRound = isRound;
-        this.isSolid = isHollow;
+        this.isHollow = isHollow;
         this.isDark = isDark;
         this.isTall = isLarge;
     }
@@ -39,9 +39,9 @@ public class Piece {
         char left = isRound ? '(' : '[';
         char right = isRound ? ')' : ']';
         char color = isDark ? 'D' : 'L';
-        char solid = isSolid ? '*' : ' ';
+        char hollow = isHollow ? ' ' : '*';
         char height = isTall ? '^' : '_';
         
-        return "" + left + color + solid + height + right;
+        return "" + left + color + hollow + height + right;
     }
 }
