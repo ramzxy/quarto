@@ -86,7 +86,6 @@ public class Game {
             availablePieces.remove(piece);
         }else System.out.println("Piece is not valid, it has been used.");
     }
-
     /**
      * Gives all valid moves that can be played in the current state of the game.
      * @return List of all moves that can be played
