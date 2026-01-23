@@ -159,7 +159,11 @@ public class Board {
      * @return the copy of the board
      */
     public Board copy(){
-        Board copyOfBoard = this;
+        Board copyOfBoard = new Board();
+        // Deep copy of fields array
+        for(int i = 0; i < fields.length; i++) {
+             copyOfBoard.fields[i] = this.fields[i]; // Pieces are immutable so shallow copy of reference is fine
+        }
         return copyOfBoard;
     }
 

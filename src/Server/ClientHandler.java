@@ -17,8 +17,8 @@ public class ClientHandler implements GameListener {
     private ServerConnection connection;
     private GameManager gameManager;
     private String playerName;
-    private Game currentGame;
-    private ClientState state;
+    private volatile Game currentGame;
+    private volatile ClientState state;
     private List<String> supportedExtensions;
     private static final String SERVER_DESCRIPTION = "Quarto Server";
 
@@ -69,6 +69,7 @@ public class ClientHandler implements GameListener {
             state = ClientState.LOGGED_IN;
             connection.sendLogin();
         } else {
+            Server.log("ClientHandler", playerName + " tried to login but failed (taken?)");
             connection.sendAlreadyLoggedIn();
         }
     }
@@ -94,16 +95,20 @@ public class ClientHandler implements GameListener {
         }
         
         if (state == ClientState.IN_QUEUE) {
-            gameManager.removeFromQueue(this);
+            Server.log("ClientHandler", playerName + " left queue");
             state = ClientState.LOGGED_IN;
+            gameManager.removeFromQueue(this);
         } else {
-            gameManager.queueForGame(this);
+            Server.log("ClientHandler", playerName + " joined queue");
             state = ClientState.IN_QUEUE;
+            gameManager.queueForGame(this);
         }
     }
 
     public void receiveFirstMove(int pieceId) {
+        Server.log("ClientHandler", playerName + " sending FirstMove: " + pieceId);
         if (state != ClientState.IN_GAME || currentGame == null) {
+            Server.log("ClientHandler", "Error: Not in game (State: " + state + ", Game: " + (currentGame==null?"null":"ok") + ")");
             connection.sendError("Not in a game");
             return;
         }
@@ -121,7 +126,9 @@ public class ClientHandler implements GameListener {
     }
 
     public void receiveMove(int position, int nextPieceId) {
+        Server.log("ClientHandler", playerName + " sending Move: pos=" + position + ", next=" + nextPieceId);
         if (state != ClientState.IN_GAME || currentGame == null) {
+            Server.log("ClientHandler", "Error: Not in game (State: " + state + ", Game: " + (currentGame==null?"null":"ok") + ")");
             connection.sendError("Not in a game");
             return;
         }
@@ -214,7 +221,12 @@ public class ClientHandler implements GameListener {
 
     @Override
     public void gameFinished(Game game) {
-        // TODO: Get winner and reason from game
+        String reason = game.getEndReason();
+        String winner = game.getWinnerName();
+        Server.log("ClientHandler", playerName + " game finished (Reason: " + reason + ")");
+        
+        connection.sendGameOver(reason, winner);
+        
         state = ClientState.LOGGED_IN;
         currentGame = null;
     }
