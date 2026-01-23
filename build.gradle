@@ -1,0 +1,72 @@
+plugins {
+    id 'java'
+}
+
+group = 'quarto'
+version = '1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JLine3 for advanced terminal input (line editing, history, completion)
+    implementation 'org.jline:jline:3.25.1'
+    // Jansi for cross-platform ANSI colors (especially Windows support)
+    implementation 'org.fusesource.jansi:jansi:2.4.1'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+// Encoding for source files
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Create client fat JAR with all dependencies
+tasks.register('clientJar', Jar) {
+    archiveBaseName = 'client'
+    archiveVersion = ''
+    destinationDirectory = file("$projectDir")
+    manifest {
+        attributes 'Main-Class': 'Client.ClientApplication'
+    }
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Create server fat JAR with all dependencies
+tasks.register('serverJar', Jar) {
+    archiveBaseName = 'server'
+    archiveVersion = ''
+    destinationDirectory = file("$projectDir")
+    manifest {
+        attributes 'Main-Class': 'Server.ServerApplication'
+    }
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Default task: build both JARs
+defaultTasks 'clientJar', 'serverJar'
+
+// Also make 'build' create the JARs
+build.dependsOn clientJar, serverJar
+

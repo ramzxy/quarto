@@ -1,2 +1,5 @@
 /.idea/
 project-109.iml
+/build/
+/out/
+/gradle/
