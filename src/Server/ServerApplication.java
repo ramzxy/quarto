@@ -6,7 +6,7 @@ import java.util.Scanner;
  * Main entry point for the Server application.
  */
 public class ServerApplication {
-    private static final int DEFAULT_PORT = 6969;
+    private static final int DEFAULT_PORT = 4444;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);

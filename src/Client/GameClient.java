@@ -15,21 +15,20 @@ public class GameClient {
     private ClientConnection connection;
     private AbstractPlayer player;
     private Game localGame;
-    private ClientView view;
+    private TUI view;
     private boolean loggedIn = false;
     private boolean inQueue = false;
     private boolean inGame = false;
 
     /**
      * Creates a new GameClient and connects to the specified server.
+     * Username is prompted after connection is established.
      * @param host the server host
      * @param port the server port
-     * @param playerName the player's username
-     * @param view the view for displaying game state
+     * @param view the TUI for displaying game state and prompting user
      * @throws IOException if connection fails
      */
-    public GameClient(String host, int port, AbstractPlayer playerName, ClientView view) throws IOException {
-        this.player = playerName;
+    public GameClient(String host, int port, TUI view) throws IOException {
         this.view = view;
         this.connection = new ClientConnection(host, port);
         this.connection.setGameClient(this);
@@ -40,26 +39,32 @@ public class GameClient {
      */
     public void start() {
         connection.start();
-        connection.sendHello("GameClient");
+        connection.sendHello("QuartoClient");
     }
 
     // --- Protocol receive handlers (called by ClientConnection) ---
 
     public void receiveHello(String serverDescription) {
-        System.out.println("Connected to: " + serverDescription);
-        // Auto-login after handshake
-        connection.sendLogin(player.getName());
+        System.out.println("Connected to server: " + serverDescription);
+        
+        // Prompt for username after connection
+        String username = view.promptUsername();
+        this.player = new HumanPlayer(username);
+        connection.sendLogin(username);
     }
 
     public void receiveLogin() {
         loggedIn = true;
-        System.out.println("Logged in as: " + player);
         view.showLoggedIn(player.getName());
     }
 
     public void receiveAlreadyLoggedIn() {
-        System.out.println("Username '" + player + "' is already taken");
-        view.showError("Username already taken");
+        view.showError("Username '" + player.getName() + "' is already in use.");
+        
+        // Prompt for a different username
+        String username = view.promptUsername();
+        this.player = new HumanPlayer(username);
+        connection.sendLogin(username);
     }
 
     public void receiveList(String[] users) {
@@ -67,19 +72,17 @@ public class GameClient {
     }
 
     public void receiveNewGame(AbstractPlayer player1, AbstractPlayer player2) {
-        boolean iAmFirst = player1.equals(player);
+        boolean iAmFirst = player1.getName().equals(player.getName());
         
         inGame = true;
         inQueue = false;
-        localGame = new Game(player1, player2); // Create fresh game
+        localGame = new Game(player1, player2);
         
-        System.out.println("Game started! " + player1.getName() + " vs " + player2.getName());
         view.showGameStarted(player1.getName(), player2.getName(), iAmFirst);
         view.displayGame(localGame);
     }
 
     public void receiveFirstMove(int pieceId) {
-
         Piece piece = localGame.getPieceById(pieceId);
         if (piece != null) {
             localGame.pickCurrentPiece(piece);
@@ -92,14 +95,13 @@ public class GameClient {
     }
 
     public void receiveMove(int position, int pieceId) {
-        
-        // 1. Place the piece we were holding (currentPieceToPlace) at position
-        Piece pieceToPlace = localGame.getCurrentPiece(); // This is what we were given previously
+        // Place the piece we were holding at position
+        Piece pieceToPlace = localGame.getCurrentPiece();
         if (pieceToPlace != null) {
             localGame.doMove(new Move(position, pieceToPlace));
         }
         
-        // 2. The opponent picked 'pieceId' for us to play next.
+        // The opponent picked 'pieceId' for us to play next
         Piece nextPiece = localGame.getPieceById(pieceId);
         if (nextPiece != null) {
             localGame.pickCurrentPiece(nextPiece);
@@ -113,17 +115,14 @@ public class GameClient {
         inGame = false;
         localGame = null;
         
-        System.out.println("Game over: " + reason + (winner != null ? " Winner: " + winner : ""));
         view.showGameOver(reason, winner);
     }
 
     public void receiveError(String error) {
-        System.out.println("Server error: " + error);
         view.showError(error);
     }
 
     public void receiveDisconnect() {
-        System.out.println("Disconnected from server");
         view.showDisconnected();
     }
 
@@ -134,7 +133,7 @@ public class GameClient {
      */
     public void joinQueue() {
         if (!loggedIn) {
-            view.showError("Not logged in");
+            view.showError("Not logged in yet.");
             return;
         }
         connection.sendQueue();
@@ -165,7 +164,7 @@ public class GameClient {
      */
     public void makeMove(int position, int nextPieceId) {
         if (!inGame) {
-            view.showError("Not in a game");
+            view.showError("Not in a game.");
             return;
         }
         connection.sendMove(position, nextPieceId);
@@ -177,7 +176,7 @@ public class GameClient {
      */
     public void makeFirstMove(int pieceId) {
         if (!inGame) {
-            view.showError("Not in a game");
+            view.showError("Not in a game.");
             return;
         }
         connection.sendFirstMove(pieceId);
