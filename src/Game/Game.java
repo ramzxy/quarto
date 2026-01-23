@@ -33,7 +33,7 @@ public class Game {
                 */
                 flags[3-j] = ((j >> 1) & 1) == 1;
             }
-            availablePieces.add(new Piece(i, flags[0], flags[1], flags[2], flags[3]));
+            availablePieces.add(new Piece(i, flags[1], flags[0], flags[3], flags[2]));
         }
     }
 
