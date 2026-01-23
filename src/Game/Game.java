@@ -10,6 +10,8 @@ public class Game {
     private AbstractPlayer[] playerList;
     private int currentTurn;
     private List<GameListener> gameListeners;
+    private String winnerName;
+    private String endReason;
 
     private final int PIECE_NUMBER = 16;
 
@@ -229,5 +231,18 @@ public class Game {
      */
     public List<Piece> getAvailablePieces() {
         return availablePieces;
+    }
+
+    public void setResult(String reason, String winner) {
+        this.endReason = reason;
+        this.winnerName = winner;
+    }
+
+    public String getEndReason() {
+        return endReason;
+    }
+
+    public String getWinnerName() {
+        return winnerName;
     }
 }

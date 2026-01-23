@@ -106,7 +106,8 @@ public class GameManager {
         // NEWGAME~player1~player2 - first player moves first
         p1.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
         p2.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
-                
+        
+        Server.log("GameManager", "Created game between " + p1.getPlayerName() + " and " + p2.getPlayerName());
         return game;
     }
 
@@ -117,10 +118,10 @@ public class GameManager {
      * @param winner the winner's username (null for DRAW)
      */
     public void endGame(Game game, String reason, String winner) {
+        Server.log("GameManager", "Ending game: Reason=" + reason + ", Winner=" + winner);
         activeGames.remove(game);
-        
-        // Get both players from the game
-        // TODO: Need to get players from game object
+        game.setResult(reason, winner);
+        game.notifyGameOver(); 
     }
 
     /**

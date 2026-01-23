@@ -110,4 +110,9 @@ public class Server extends SocketServer {
     public int getServerPort() {
         return getPort();
     }
+
+    public static void log(String tag, String message) {
+        System.out.println(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new java.util.Date()) + 
+                           " [" + tag + "] " + message);
+    }
 }
