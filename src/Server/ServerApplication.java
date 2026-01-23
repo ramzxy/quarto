@@ -19,13 +19,8 @@ public class ServerApplication {
         }
         
         System.out.println("Starting Server on port " + port + "...");
-        
-        try {
-            Server server = Server.create(port);
-            server.start();
-        } catch (IOException e) {
-            System.err.println("Failed to start server: " + e.getMessage());
-            e.printStackTrace();
-        }
+
+        Server server = Server.create(port);
+        server.run();
     }
 }

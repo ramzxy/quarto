@@ -29,6 +29,7 @@ public class Server extends SocketServer {
         this.gameManager = new GameManager();
     }
 
+
     /**
      * Creates a server, prompting for a new port if the initial one is unavailable.
      * @param initialPort the initial port to try
@@ -69,6 +70,7 @@ public class Server extends SocketServer {
 
     /**
      * Handles a new client connection by creating a ClientHandler.
+     *
      * @param socket the client socket
      */
     @Override
