@@ -17,4 +17,8 @@ public class ComputerPlayer extends AbstractPlayer {
     public Move determineMove(Game game) {
         return strategy.computeMove(game);
     }
+    
+    public Strategy getStrategy() {
+        return strategy;
+    }
 }

@@ -14,6 +14,12 @@ public interface ClientView {
     void displayGame(Game game);
 
     /**
+     * Prompts the user for a username.
+     * @return the entered username
+     */
+    String promptUsername();
+
+    /**
      * Method in which the player requests to make a move.
      * @param game current state of the game
      * @return the allowed move

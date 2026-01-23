@@ -2,11 +2,38 @@ package ai;
 
 import Game.Game;
 import Game.Move;
+import Game.Piece;
 
-public class RandomStrategy implements Strategy{
+import java.util.List;
+import java.util.Random;
+
+/**
+ * Simple AI strategy that picks random valid moves.
+ * Easy difficulty level.
+ */
+public class RandomStrategy implements Strategy {
+    private final Random random = new Random();
+
     @Override
     public Move computeMove(Game game) {
+        List<Move> validMoves = game.getValidMoves();
+        if (validMoves.isEmpty()) {
+            return null;
+        }
+        return validMoves.get(random.nextInt(validMoves.size()));
+    }
 
-        return game.getValidMoves().get(0);
+    @Override
+    public Piece pickPieceForOpponent(Game game) {
+        List<Piece> available = game.getAvailablePieces();
+        if (available.isEmpty()) {
+            return null;
+        }
+        return available.get(random.nextInt(available.size()));
+    }
+
+    @Override
+    public String getName() {
+        return "Random (Easy)";
     }
 }

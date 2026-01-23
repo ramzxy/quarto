@@ -9,7 +9,6 @@ import java.util.Scanner;
 
 /**
  * Text-based user interface for the game client.
- * Designed to be clear and accessible for novice users.
  */
 public class TUI implements ClientView {
     private Scanner scanner;
@@ -101,6 +100,15 @@ public class TUI implements ClientView {
                     }
                     break;
                     
+                case "login":
+                    if (client.isLoggedIn()) {
+                        System.out.println("Already logged in as " + client.getPlayer().getName());
+                    } else {
+                        String username = promptUsername();
+                        client.login(username);
+                    }
+                    break;
+                    
                 case "list":
                     client.requestPlayerList();
                     break;
@@ -183,6 +191,7 @@ public class TUI implements ClientView {
         System.out.println("\n╔════════════════════════════════════════╗");
         System.out.println("║           QUARTO COMMANDS              ║");
         System.out.println("╠════════════════════════════════════════╣");
+        System.out.println("║  login  - Sign in with username        ║");
         System.out.println("║  queue  - Join/leave matchmaking       ║");
         System.out.println("║  list   - Show online players          ║");
         System.out.println("║  help   - Show this help message       ║");
