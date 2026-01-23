@@ -50,7 +50,7 @@ public class Board {
         return allSame(a.isDark, b.isDark, c.isDark, d.isDark)
             || allSame(a.isTall, b.isTall, c.isTall, d.isTall)
             || allSame(a.isRound, b.isRound, c.isRound, d.isRound)
-            || allSame(a.isSolid, b.isSolid, c.isSolid, d.isSolid);
+            || allSame(a.isHollow, b.isHollow, c.isHollow, d.isHollow);
     }
 
     /**

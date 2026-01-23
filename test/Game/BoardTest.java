@@ -25,9 +25,10 @@ public class BoardTest {
                 Take the least significant position, make it into boolean
                 Put it from the last in the list
                 */
-                flags[3-j] = ((j >> 1) & 1) == 1;
+                flags[3-j] = ((i >> j) & 1) == 1;
             }
             pieces[i] = new Piece(i, flags[1], flags[0], flags[3], flags[2]);
+            System.out.println(pieces[i].toString());
         }
     }
 
