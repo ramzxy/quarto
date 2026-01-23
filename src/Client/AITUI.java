@@ -43,10 +43,7 @@ public class AITUI implements ClientView {
 
     @Override
     public void displayGame(Game game) {
-        // Minimal output for AI
-        System.out.println(game.getBoard().toString(game.getAvailablePieces()));
-
-
+        System.out.println(game.getBoard().toString(null));
     }
 
 

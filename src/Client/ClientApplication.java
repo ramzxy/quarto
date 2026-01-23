@@ -6,7 +6,45 @@ public class ClientApplication {
     private static final String DEFAULT_HOST = "127.0.0.1";
     
     public static void main(String[] args) {
-        System.out.println("=== QUARTO CLIENT ===");
+        boolean useTui = false;
+        String hostArg = null;
+        int portArg = -1;
+
+        // Simple arg parsing
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--tui")) {
+                useTui = true;
+            } else if (args[i].equals("--gui")) {
+                useTui = false;
+            } else if (hostArg == null) {
+                hostArg = args[i];
+            } else if (portArg == -1) {
+                try {
+                    portArg = Integer.parseInt(args[i]);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid port: " + args[i]);
+                }
+            }
+        }
+
+        if (!useTui) {
+            System.out.println("Launching GUI...");
+            try {
+                GuiLauncher.run(args);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Failed to launch GUI. Creating TUI instead...");
+                useTui = true; // Fallback
+            }
+        }
+
+        if (useTui) {
+            runTui(hostArg, portArg);
+        }
+    }
+
+    private static void runTui(String hostArg, int portArg) {
+        System.out.println("=== QUARTO CLIENT (TUI) ===");
         System.out.println("Welcome to Quarto!\n");
         
         TUI view = new TUI();
@@ -15,9 +53,9 @@ public class ClientApplication {
             String host;
             int port;
             
-            if (args.length >= 2) {
-                host = args[0];
-                port = Integer.parseInt(args[1]);
+            if (hostArg != null && portArg != -1) {
+                host = hostArg;
+                port = portArg;
             } else {
                 System.out.print("Enter server address (default: " + DEFAULT_HOST + "): ");
                 String inputHost = view.readLine();

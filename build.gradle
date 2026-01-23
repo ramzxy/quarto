@@ -1,9 +1,21 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group = 'quarto'
 version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.openjfx:javafx-controls:17.0.2:win'
+    implementation 'org.openjfx:javafx-graphics:17.0.2:win'
+    implementation 'org.openjfx:javafx-base:17.0.2:win'
+    implementation 'org.openjfx:javafx-fxml:17.0.2:win'
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -24,6 +36,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // Create client JAR
+// Create client JAR
 tasks.register('clientJar', Jar) {
     archiveBaseName = 'client'
     archiveVersion = ''
@@ -32,6 +45,11 @@ tasks.register('clientJar', Jar) {
         attributes 'Main-Class': 'Client.ClientApplication'
     }
     from sourceSets.main.output
+    
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
