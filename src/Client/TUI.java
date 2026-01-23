@@ -74,8 +74,8 @@ public class TUI implements ClientView {
      * Main run loop for the TUI.
      * @param client the GameClient instance
      */
-    public void run(GameClient client) {
-        this.client = client;
+    public void run(GameClient gclient) {
+        this.client = gclient;
         System.out.println("\nConnected! Type 'help' for available commands.");
         
         boolean running = true;

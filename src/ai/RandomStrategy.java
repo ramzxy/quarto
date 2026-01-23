@@ -20,7 +20,12 @@ public class RandomStrategy implements Strategy {
         if (validMoves.isEmpty()) {
             return null;
         }
-        return validMoves.get(random.nextInt(validMoves.size()));
+        while (true) {
+            Move candidate = validMoves.get(random.nextInt(validMoves.size()));
+            if (game.isValidMove(candidate)) {
+                return candidate;
+            }
+        }
     }
 
     @Override
