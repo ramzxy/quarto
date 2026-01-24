@@ -1,0 +1,11 @@
+> Task :clean
+
+> Task :compileJava
+Note: C:\Users\ilia\IdeaProjects\project-109\src\Client\GuiView.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+[Incubating] Problems report is available at: file:///C:/Users/ilia/IdeaProjects/project-109/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 3s
+2 actionable tasks: 2 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.0.0/userguide/configuration_cache_enabling.html

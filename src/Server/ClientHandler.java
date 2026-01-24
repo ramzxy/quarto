@@ -11,13 +11,13 @@ import java.util.List;
 /**
  * Handles business logic for a single connected client.
  * Receives parsed protocol events from ServerConnection.
- * Implements GameListener to receive game events.
+ * Controls all protocol communication (broadcasting moves and game over).
  */
-public class ClientHandler implements GameListener {
+public class ClientHandler {
     private ServerConnection connection;
     private GameManager gameManager;
     private String playerName;
-    private volatile Game currentGame;
+    private volatile GameSession gameSession;
     private volatile ClientState state;
     private List<String> supportedExtensions;
     private static final String SERVER_DESCRIPTION = "Quarto Server";
@@ -107,14 +107,16 @@ public class ClientHandler implements GameListener {
 
     public void receiveFirstMove(int pieceId) {
         Server.log("ClientHandler", playerName + " sending FirstMove: " + pieceId);
-        if (state != ClientState.IN_GAME || currentGame == null) {
-            Server.log("ClientHandler", "Error: Not in game (State: " + state + ", Game: " + (currentGame==null?"null":"ok") + ")");
-            connection.sendError("Not in a game");
+        if (state != ClientState.IN_GAME || gameSession == null) {
+            // Game ended - silently ignore late moves (race condition)
+            Server.log("ClientHandler", playerName + " sent FirstMove but game already ended (ignoring)");
             return;
         }
         
+        Game game = gameSession.getGame();
+        
         // First move: player picks a piece to give to opponent (MOVE~<pieceId>)
-        Piece piece = currentGame.getPieceById(pieceId);
+        Piece piece = game.getPieceById(pieceId);
         if (piece == null) {
             connection.sendError("Invalid piece");
             return;
@@ -122,19 +124,27 @@ public class ClientHandler implements GameListener {
         
         // Set this piece as the current piece for the opponent to place
         // Use boardIndex = -1 for first move. No piece placed (null). Next piece is the one chosen.
-        currentGame.doMove(new Move(-1, null, piece));
+        if (!game.doMove(new Move(-1, null, piece))) {
+            connection.sendError("Invalid move");
+            return;
+        }
+        
+        // Broadcast the move to both players via session
+        gameSession.broadcastMove(-1, pieceId);
     }
 
     public void receiveMove(int position, int nextPieceId) {
         Server.log("ClientHandler", playerName + " sending Move: pos=" + position + ", next=" + nextPieceId);
-        if (state != ClientState.IN_GAME || currentGame == null) {
-            Server.log("ClientHandler", "Error: Not in game (State: " + state + ", Game: " + (currentGame==null?"null":"ok") + ")");
-            connection.sendError("Not in a game");
+        if (state != ClientState.IN_GAME || gameSession == null) {
+            // Game ended - silently ignore late moves (race condition)
+            Server.log("ClientHandler", playerName + " sent Move but game already ended (ignoring)");
             return;
         }
         
+        Game game = gameSession.getGame();
+        
         // Get the current piece to place (was set by opponent's previous move)
-        Piece currentPiece = currentGame.getCurrentPiece();
+        Piece currentPiece = game.getCurrentPiece();
         if (currentPiece == null) {
             connection.sendError("No piece to place");
             return;
@@ -144,35 +154,54 @@ public class ClientHandler implements GameListener {
         
         if (nextPieceId >= 0 && nextPieceId <= 15) {
             // Normal move: pick piece for opponent
-            Piece nextPiece = currentGame.getPieceById(nextPieceId);
+            Piece nextPiece = game.getPieceById(nextPieceId);
             if (nextPiece == null) {
                 connection.sendError("Invalid piece");
                 return;
             }
             
             Move move = new Move(position, currentPiece, nextPiece);
-            if (!currentGame.doMove(move)) {
+            if (!game.doMove(move)) {
                  connection.sendError("Invalid move");
                  return;
+            }
+            
+            // Broadcast the move via session
+            gameSession.broadcastMove(position, nextPieceId);
+            
+            // Check for natural game ending (winning line formed without explicit claim)
+            if (game.isGameOver()) {
+                gameSession.broadcastGameOver(game.getEndReason(), game.getWinnerName());
+                gameManager.cleanupSession(gameSession);
             }
         } else {
  
              Move move = new Move(position, currentPiece, null); // No next piece
-             if (!currentGame.doMove(move)) {
+             if (!game.doMove(move)) {
                  connection.sendError("Invalid move");
                  return;
              }
              
+             // Broadcast the move via session (with original nextPieceId: 16 or 17)
+             gameSession.broadcastMove(position, nextPieceId);
+             
              if (nextPieceId == PROTOCOL.CLAIM_QUARTO) {
                 // Player claims Quarto
-                if (currentGame.getBoard().hasWinningLine()) {
-                    gameManager.endGame(currentGame, PROTOCOL.VICTORY, playerName);
+                String winner;
+                if (game.getBoard().hasWinningLine()) {
+                    winner = playerName;
                 } else {
-                    gameManager.endGame(currentGame, PROTOCOL.VICTORY, currentGame.getOpponentName());
+                    // Wrong claim - opponent wins
+                    winner = game.getOpponentName();
                 }
+                game.setResult(PROTOCOL.VICTORY, winner);
+                gameSession.broadcastGameOver(PROTOCOL.VICTORY, winner);
+                gameManager.cleanupSession(gameSession);
             } else if (nextPieceId == PROTOCOL.FINAL_PIECE_NO_CLAIM) {
-                if (currentGame.isGameOver()) {
-                    gameManager.endGame(currentGame, PROTOCOL.DRAW, null);
+                if (game.isGameOver()) {
+                    game.setResult(PROTOCOL.DRAW, null);
+                    gameSession.broadcastGameOver(PROTOCOL.DRAW, null);
+                    gameManager.cleanupSession(gameSession);
                 }
             }
         }
@@ -182,13 +211,23 @@ public class ClientHandler implements GameListener {
         gameManager.handleDisconnect(this);
     }
 
+    /**
+     * Clears game-related state after a game ends.
+     * Package-private so GameSession can call it.
+     */
+    void clearGameState() {
+        state = ClientState.LOGGED_IN;
+        gameSession = null;
+    }
+
     // --- Called by GameManager ---
 
     /**
      * Called when this client starts a game.
+     * @param session the game session
      */
-    public void startGame(Game game) {
-        this.currentGame = game;
+    public void startGame(GameSession session) {
+        this.gameSession = session;
         this.state = ClientState.IN_GAME;
     }
 
@@ -199,50 +238,14 @@ public class ClientHandler implements GameListener {
         connection.sendNewGame(player1, player2);
     }
 
-    // --- GameListener implementation ---
-
-    @Override
-    public void moveMade(Move move) {
-        // First move has no board position (just piece selection)
-        // Use boardIndex == -1 as sentinel for first move
-        if (move.getBoardIndex() < 0) {
-            // First move: MOVE~<pieceId>
-            // The piece chosen is in getNextPiece() because construction was (-1, null, piece)
-            if (move.getNextPiece() != null) {
-                connection.sendFirstMove(move.getNextPiece().getId());
-            }
-        } else {
-            // Subsequent move: MOVE~<position>~<pieceId>
-            // The piece chosen for next player is getNextPiece()
-            int nextPieceId = (move.getNextPiece() != null) ? move.getNextPiece().getId() : -1;
-            connection.sendMove(move.getBoardIndex(), nextPieceId);
-        }
-    }
-
-    @Override
-    public void gameFinished(Game game) {
-        String reason = game.getEndReason();
-        String winner = game.getWinnerName();
-        Server.log("ClientHandler", playerName + " game finished (Reason: " + reason + ")");
-        
-        connection.sendGameOver(reason, winner);
-        
-        state = ClientState.LOGGED_IN;
-        currentGame = null;
-    }
-
     // --- Getters ---
 
     public String getPlayerName() {
         return playerName;
     }
 
-    public Game getCurrentGame() {
-        return currentGame;
-    }
-
-    public void setCurrentGame(Game game) {
-        this.currentGame = game;
+    public GameSession getGameSession() {
+        return gameSession;
     }
 
     public ClientState getState() {

@@ -1,9 +1,11 @@
-package Client;
+package Client.views;
 
+import Client.GameClient;
 import Game.Game;
 import Game.Move;
 import Game.Piece;
-
+import Game.Piece;
+import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -56,7 +58,7 @@ public class TUI implements ClientView {
         System.out.println(ConsoleUtils.BRIGHT_BLUE + "║        QUARTO GAME BOARD         ║" + ConsoleUtils.RESET);
         System.out.println(ConsoleUtils.BRIGHT_BLUE + "╚══════════════════════════════════╝" + ConsoleUtils.RESET);
         
-        System.out.println(game.getBoard().toString(game.getAvailablePieces()));
+        System.out.println(game.getBoard().toString(null));
         
         System.out.println("──────────────────────────────────────");
         Piece currentPiece = game.getCurrentPiece();

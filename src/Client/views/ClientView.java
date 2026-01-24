@@ -1,4 +1,4 @@
-package Client;
+package Client.views;
 
 import Game.Game;
 import Game.Move;

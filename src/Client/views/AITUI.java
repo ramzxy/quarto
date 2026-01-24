@@ -1,5 +1,7 @@
-package Client;
+package Client.views;
 
+import Client.GameClient;
+import Client.ComputerPlayer;
 import Game.AbstractPlayer;
 import Game.Game;
 import Game.Move;
@@ -43,10 +45,7 @@ public class AITUI implements ClientView {
 
     @Override
     public void displayGame(Game game) {
-        // Minimal output for AI
-        System.out.println(game.getBoard().toString(game.getAvailablePieces()));
-
-
+        System.out.println(game.getBoard().toString(null));
     }
 
 

@@ -1,5 +1,7 @@
 package Client;
 
+import Client.views.TUI;
+
 public class ClientApplication {
 
     private static final int DEFAULT_PORT = 4444;
@@ -12,20 +14,32 @@ public class ClientApplication {
         TUI view = new TUI();
         
         try {
-            String host;
-            int port;
-            
+            String host = DEFAULT_HOST;
+            int port = DEFAULT_PORT;
+
+            // Simple arg parsing for host/port only
             if (args.length >= 2) {
-                host = args[0];
-                port = Integer.parseInt(args[1]);
+                 host = args[0];
+                 try {
+                     port = Integer.parseInt(args[1]);
+                 } catch (NumberFormatException e) {
+                     System.err.println("Invalid port argument. Using default.");
+                 }
             } else {
-                System.out.print("Enter server address (default: " + DEFAULT_HOST + "): ");
-                String inputHost = view.readLine();
-                host = inputHost.isEmpty() ? DEFAULT_HOST : inputHost;
-                
-                System.out.print("Enter server port (default: " + DEFAULT_PORT + "): ");
-                String inputPort = view.readLine();
-                port = inputPort.isEmpty() ? DEFAULT_PORT : Integer.parseInt(inputPort);
+                 // Interactive Mode
+                 System.out.print("Enter server address (default: " + DEFAULT_HOST + "): ");
+                 String inputHost = view.readLine();
+                 if (!inputHost.isEmpty()) host = inputHost;
+                 
+                 System.out.print("Enter server port (default: " + DEFAULT_PORT + "): ");
+                 String inputPort = view.readLine();
+                 if (!inputPort.isEmpty()) {
+                     try {
+                        port = Integer.parseInt(inputPort);
+                     } catch (NumberFormatException e) {
+                        System.out.println("Invalid port. Using default.");
+                     }
+                 }
             }
             
             System.out.println("\nConnecting to " + host + ":" + port + "...");
@@ -35,8 +49,6 @@ public class ClientApplication {
             
             view.run(client);
             
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid port number.");
         } catch (Exception e) {
             System.err.println("Connection error: " + e.getMessage());
         }

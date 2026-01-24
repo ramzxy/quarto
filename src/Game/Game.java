@@ -9,7 +9,6 @@ public class Game {
     private Piece currentPieceToPlace;
     private AbstractPlayer[] playerList;
     private int currentTurn;
-    private List<GameListener> gameListeners;
     private String winnerName;
     private String endReason;
 
@@ -22,7 +21,6 @@ public class Game {
         board = new Board();
         playerList = new AbstractPlayer[]{player1, player2};
         availablePieces = new ArrayList<>();
-        gameListeners = new ArrayList<>();
 
         for(int i = 0; i < PIECE_NUMBER; i++){
             // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
@@ -49,7 +47,6 @@ public class Game {
 
     /**
      * Does the move on the board if the move is valid.
-     * Notifies listeners after move is applied.
      * @param move The move to be played
      * @return true if move was valid and applied, false otherwise
      */
@@ -64,7 +61,6 @@ public class Game {
              if (!availablePieces.contains(move.getNextPiece())) return false;
              
              pickCurrentPiece(move.getNextPiece());
-             notifyMove(move);
 
              currentTurn = (currentTurn + 1) % 2;
              return true;
@@ -92,19 +88,22 @@ public class Game {
             pickCurrentPiece(move.getNextPiece());
         }
         
-        // Notify listeners
-        notifyMove(move);
         
-        // Check if game is over
+        // Check if game is over and set result (ClientHandler handles broadcasting)
         if (isGameOver()) {
-            notifyGameOver();
+            if (board.hasWinningLine()) {
+                // The player who just placed the piece made the winning line
+                setResult("VICTORY", playerList[currentTurn].getName());
+            } else {
+                // Board is full without a winning line
+                setResult("DRAW", null);
+            }
         }
         // Switch turns
         currentTurn = (currentTurn + 1) % 2;
         
         return true;
     }
-
 
 
     /**
@@ -148,39 +147,8 @@ public class Game {
         return board.hasWinningLine() || board.isFull();
     }
 
-    /**
-     * Function to add a game listener to the game.
-     * @param gameListener Implementation of GameListener to be added
-     */
-    public void addListener(GameListener gameListener){
-        gameListeners.add(gameListener);
-    }
-
-    /**
-     * Notifies all listeners that a move was made.
-     * @param move the move that was made
-     */
-    public void notifyMove(Move move) {
-        for (GameListener listener : gameListeners) {
-            listener.moveMade(move);
-        }
-    }
-
-    /**
-     * Notifies all listeners that the game has finished.
-     */
-    public void notifyGameOver() {
-        for (GameListener listener : gameListeners) {
-            listener.gameFinished(this);
-        }
-    }
-
     public Board getBoard(){
         return board;
-    }
-
-    public List<GameListener> getGameListeners() {
-        return gameListeners;
     }
 
     /**
