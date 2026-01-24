@@ -110,11 +110,23 @@ public class GameManager {
     }
 
     /**
-     * Cleans up a finished game session by removing it from active sessions.
-     * Broadcasting GAMEOVER is handled by GameSession.
+     * Ends a game session by broadcasting game over and cleaning up.
+     * @param session the game session to end
+     * @param reason the game end reason (VICTORY, DRAW)
+     * @param winner the winner's name, or null for DRAW
+     */
+    public void endGame(GameSession session, String reason, String winner) {
+        session.broadcastGameOver(reason, winner);
+        cleanupSession(session);
+    }
+
+    /**
+     * Cleans up a finished game session by clearing player states and removing from active sessions.
      * @param session the game session to clean up
      */
-    public void cleanupSession(GameSession session) {
+    private void cleanupSession(GameSession session) {
+        session.getPlayer1().clearGameState();
+        session.getPlayer2().clearGameState();
         activeSessions.remove(session.getGame());
     }
 
@@ -126,11 +138,11 @@ public class GameManager {
         removeFromQueue(client);
         releaseUsername(client.getPlayerName());
         
-        // If in a game, notify opponent and clean up
+        // If in a game, notify opponent and clean up both players
         GameSession session = client.getGameSession();
         if (session != null) {
             session.notifyOpponentDisconnect(client);
-            activeSessions.remove(session.getGame());
+            cleanupSession(session);
         }
     }
 }

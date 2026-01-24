@@ -171,8 +171,7 @@ public class ClientHandler {
             
             // Check for natural game ending (winning line formed without explicit claim)
             if (game.isGameOver()) {
-                gameSession.broadcastGameOver(game.getEndReason(), game.getWinnerName());
-                gameManager.cleanupSession(gameSession);
+                gameManager.endGame(gameSession, game.getEndReason(), game.getWinnerName());
             }
         } else {
  
@@ -195,13 +194,11 @@ public class ClientHandler {
                     winner = game.getOpponentName();
                 }
                 game.setResult(PROTOCOL.VICTORY, winner);
-                gameSession.broadcastGameOver(PROTOCOL.VICTORY, winner);
-                gameManager.cleanupSession(gameSession);
+                gameManager.endGame(gameSession, PROTOCOL.VICTORY, winner);
             } else if (nextPieceId == PROTOCOL.FINAL_PIECE_NO_CLAIM) {
                 if (game.isGameOver()) {
                     game.setResult(PROTOCOL.DRAW, null);
-                    gameSession.broadcastGameOver(PROTOCOL.DRAW, null);
-                    gameManager.cleanupSession(gameSession);
+                    gameManager.endGame(gameSession, PROTOCOL.DRAW, null);
                 }
             }
         }
@@ -213,7 +210,6 @@ public class ClientHandler {
 
     /**
      * Clears game-related state after a game ends.
-     * Package-private so GameSession can call it.
      */
     void clearGameState() {
         state = ClientState.LOGGED_IN;

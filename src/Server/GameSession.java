@@ -41,32 +41,26 @@ public class GameSession {
     }
 
     /**
-     * Broadcasts game over to both players and cleans up their game state.
+     * Broadcasts game over to both players.
+     * Does NOT clear state - that's handled by GameManager.cleanupSession().
      * @param reason the game end reason (VICTORY, DRAW, DISCONNECT)
      * @param winner the winner's name, or null for DRAW
      */
     public void broadcastGameOver(String reason, String winner) {
-
         Server.log("GameSession", "Game finished (Reason: " + reason + ")");
-
-        // Send to player 1
         player1.getConnection().sendGameOver(reason, winner);
-        player1.clearGameState();
-        
-        // Send to player 2
         player2.getConnection().sendGameOver(reason, winner);
-        player2.clearGameState();
     }
 
     /**
      * Notifies the opponent that the other player disconnected.
+     * Does NOT clear state - that's handled by GameManager.
      * @param disconnectedPlayer the player who disconnected
      */
     public void notifyOpponentDisconnect(ClientHandler disconnectedPlayer) {
         ClientHandler opponent = (disconnectedPlayer == player1) ? player2 : player1;
         Server.log("GameSession", opponent.getPlayerName() + " game finished (Reason: DISCONNECT)");
         opponent.getConnection().sendGameOver("DISCONNECT", opponent.getPlayerName());
-        opponent.clearGameState();
     }
 
     /**
