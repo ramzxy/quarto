@@ -1,5 +1,7 @@
-package Client;
+package Client.views;
 
+import Client.GameClient;
+import Client.ComputerPlayer;
 import Game.AbstractPlayer;
 import Game.Game;
 import Game.Move;

@@ -7,17 +7,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Central coordinator for matchmaking, username management, and active game tracking.
- * Handles player queuing, game creation, and cleanup on disconnection.
+ * Handles player queuing, game session creation, and cleanup on disconnection.
  */
 public class GameManager {
     private Queue<ClientHandler> waitingQueue;
     private Map<String, ClientHandler> loggedInUsers;
-    private List<Game> activeGames;
+    private Map<Game, GameSession> activeSessions;
 
     public GameManager() {
         this.waitingQueue = new ConcurrentLinkedQueue<>();
         this.loggedInUsers = Collections.synchronizedMap(new HashMap<>());
-        this.activeGames = Collections.synchronizedList(new ArrayList<>());
+        this.activeSessions = Collections.synchronizedMap(new HashMap<>());
     }
 
     /**
@@ -86,42 +86,36 @@ public class GameManager {
     }
 
     /**
-     * Creates a new game between two players, notifies them with NEWGAME, and tracks the game.
+     * Creates a new game session between two players, notifies them with NEWGAME, and tracks the session.
      * First player listed makes the first move.
      * @param p1 the first player (will move first)
      * @param p2 the second player
-     * @return the newly created Game instance
+     * @return the newly created GameSession instance
      */
-    public Game createGame(ClientHandler p1, ClientHandler p2) {
+    public GameSession createGame(ClientHandler p1, ClientHandler p2) {
         Game game = new Game(new ServerPlayer(p1.getPlayerName()), new ServerPlayer(p2.getPlayerName()));
-        activeGames.add(game);
+        GameSession session = new GameSession(game, p1, p2);
+        activeSessions.put(game, session);
         
         // Initialize game state for both clients
-        p1.startGame(game);
-        p2.startGame(game);
-
-        game.addListener(p1);
-        game.addListener(p2);
+        p1.startGame(session);
+        p2.startGame(session);
         
         // NEWGAME~player1~player2 - first player moves first
         p1.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
         p2.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
         
         Server.log("GameManager", "Created game between " + p1.getPlayerName() + " and " + p2.getPlayerName());
-        return game;
+        return session;
     }
 
     /**
-     * Ends a game and sends GAMEOVER to both players.
-     * @param game the game to end
-     * @param reason the reason (VICTORY, DRAW, DISCONNECT)
-     * @param winner the winner's username (null for DRAW)
+     * Cleans up a finished game session by removing it from active sessions.
+     * Broadcasting GAMEOVER is handled by GameSession.
+     * @param session the game session to clean up
      */
-    public void endGame(Game game, String reason, String winner) {
-        Server.log("GameManager", "Ending game: Reason=" + reason + ", Winner=" + winner);
-        activeGames.remove(game);
-        game.setResult(reason, winner);
-        game.notifyGameOver(); 
+    public void cleanupSession(GameSession session) {
+        activeSessions.remove(session.getGame());
     }
 
     /**
@@ -132,11 +126,11 @@ public class GameManager {
         removeFromQueue(client);
         releaseUsername(client.getPlayerName());
         
-        // If in a game, end it with DISCONNECT reason
-        Game game = client.getCurrentGame();
-        if (game != null) {
-            activeGames.remove(game);
-            // TODO: Notify opponent with GAMEOVER~DISCONNECT~opponentName
+        // If in a game, notify opponent and clean up
+        GameSession session = client.getGameSession();
+        if (session != null) {
+            session.notifyOpponentDisconnect(client);
+            activeSessions.remove(session.getGame());
         }
     }
 }

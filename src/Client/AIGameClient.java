@@ -1,8 +1,8 @@
 package Client;
 
 
+import Client.views.ClientView;
 import ai.Strategy;
-
 import java.io.IOException;
 
 /**

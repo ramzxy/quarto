@@ -1,5 +1,6 @@
 package Client;
 
+import Client.views.AITUI;
 import ai.GeniusStrategy;
 import ai.MinimaxStrategy;
 import ai.SmartStrategy;
