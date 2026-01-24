@@ -1,9 +1,28 @@
+# IDEs
 /.idea/
-project-109.iml
-/build/
 /out/
-/gradle/
-/.gradle/
-/.gradle/*
-/.vscode/
 /bin/
+/.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Gradle
+/.gradle/
+/build/
+
+# Logs
+log.txt
+*.log
+
+# Mac
+.DS_Store
+
+# Dist (but keep the folder structure if committed, usually binaries are ignored but sometimes kept for submission. 
+# Prompt implied "order project like this" for submission, so I will NOT ignore the JARs in dist if they want to see them there, 
+# BUT standard practice is to ignore. The user said "order my project like this", implying the result. 
+# I will ignore the jar files themselves to be safe for a repo, but the user can force add them if needed. 
+# Actually, for University submissions often they want the jars. 
+# I will leave dist/ commented out so they are tracked if generated and added, or explicitly ignore specific things.
+# I'll just ignore standard build artifacts.
