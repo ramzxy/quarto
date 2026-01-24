@@ -1,14 +1,10 @@
 package Game;
 
 import Client.HumanPlayer;
-import Client.TUI;
-import Server.ClientHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.util.List;
 
 public class GameTest {
@@ -37,11 +33,12 @@ public class GameTest {
     }
 
     @Test
-    public void testAddListener(){
+    public void testNotifyMove(){
+
     }
 
     @Test
-    public void testNotifyListener(){
+    public void testNotifyGameOver(){
 
     }
 }

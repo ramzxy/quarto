@@ -5,3 +5,5 @@ project-109.iml
 /gradle/
 /.gradle/
 /.gradle/*
+/.vscode/
+/bin/
