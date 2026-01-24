@@ -1,11 +1,12 @@
-package Game;
+package game;
+
+import Game.Board;
+import Game.Piece;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import Game.Board;
-import Game.Piece;
-import Game.Game;
+
 
 public class BoardTest {
     private Board board;

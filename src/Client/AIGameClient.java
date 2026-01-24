@@ -1,8 +1,10 @@
 package Client;
 
 
+
 import Client.views.ClientView;
 import ai.Strategy;
+
 import java.io.IOException;
 
 /**
@@ -34,8 +36,6 @@ public class AIGameClient extends GameClient {
     public void receiveAlreadyLoggedIn() {
         view.showError("Username '" + player.getName() + "' is already in use.");
         
-        // Prompt/Wait for new username (or retry with suffix?)
-        // For simple AI, we can just append random number?
         String oldName = player.getName();
         String newName = oldName + "_" + (int)(Math.random() * 1000);
         
@@ -44,4 +44,6 @@ public class AIGameClient extends GameClient {
         player = new ComputerPlayer(newName, strategy);
         connection.sendLogin(newName);
     }
+
+
 }

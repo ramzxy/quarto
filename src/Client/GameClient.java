@@ -51,12 +51,14 @@ public class GameClient {
     }
     
     public void login(String username) {
+        System.out.println("[Client] LOGIN requested for: " + username);
         this.player = new HumanPlayer(username);
         connection.sendLogin(username);
     }
 
     public void receiveLogin() {
         loggedIn = true;
+        System.out.println("[Client] LOGIN confirmed for: " + player.getName());
         view.showLoggedIn(player.getName());
     }
 
@@ -70,21 +72,31 @@ public class GameClient {
     }
 
     public void receiveList(String[] users) {
+        System.out.println("[Client] LIST received: " + String.join(",", users));
         view.showUserList(users);
     }
 
     public void receiveNewGame(AbstractPlayer player1, AbstractPlayer player2) {
         boolean iAmFirst = player1.getName().equals(player.getName());
+        System.out.println("[Client] NEWGAME p1=" + player1.getName()
+                + " p2=" + player2.getName() + " iAmFirst=" + iAmFirst);
         
         inGame = true;
         inQueue = false;
         localGame = new Game(player1, player2);
         
         view.showGameStarted(player1.getName(), player2.getName(), iAmFirst);
-        view.displayGame(localGame);
+
+        if (player instanceof HumanPlayer) {
+             view.displayGame(localGame);
+        }
+
+        // Check if it's our turn immediately
+        checkAndPerformMove();
     }
 
     public void receiveFirstMove(int pieceId) {
+        System.out.println("[Client] MOVE(first) pieceId=" + pieceId);
         Piece piece = localGame.getPieceById(pieceId);
         if (piece != null) {
             // Use doMove with special first move syntax
@@ -94,10 +106,15 @@ public class GameClient {
         }
         
         view.showMove(new String[]{"MOVE", String.valueOf(pieceId)});
-        view.displayGame(localGame);
+        if (player instanceof HumanPlayer) {
+             view.displayGame(localGame);
+        }
+        
+        checkAndPerformMove();
     }
 
     public void receiveMove(int position, int pieceId) {
+        System.out.println("[Client] MOVE pos=" + position + " nextPieceId=" + pieceId);
         // Place the piece we were holding at position
         Piece pieceToPlace = localGame.getCurrentPiece();
         
@@ -109,21 +126,51 @@ public class GameClient {
         }
         
         view.showMove(new String[]{"MOVE", String.valueOf(position), String.valueOf(pieceId)});
-        view.displayGame(localGame);
+        if (player instanceof HumanPlayer) {
+             view.displayGame(localGame);
+        }
+        if (localGame.getCurrentPlayerName().equals(player.getName())){
+        checkAndPerformMove();
+        }
+    }
+    
+    protected void checkAndPerformMove() {
+        if (localGame == null || player == null) {
+            return;
+        }
+        System.out.println("[Client] TURN check: current="
+                + localGame.getCurrentPlayerName()
+                + " me=" + player.getName()
+                + " piece=" + (localGame.getCurrentPiece() == null ? "none" : localGame.getCurrentPiece().getId()));
+        Move move = player.determineMove(localGame);
+        System.out.println("Move Chosen: " + move.getBoardIndex() + " " + move.getNextPiece().getId());
+
+        if (move != null) {
+
+            if (move.getBoardIndex() == -1) {
+                // First move (picking piece only)
+                makeFirstMove(move.getNextPiece().getId());
+            } else {
+                makeMove(move.getBoardIndex(), move.getNextPiece().getId());
+            }
+        }
     }
 
     public void receiveGameOver(String reason, String winner) {
         inGame = false;
         localGame = null;
+        System.out.println("[Client] GAMEOVER reason=" + reason + " winner=" + winner);
         
         view.showGameOver(reason, winner);
     }
 
     public void receiveError(String error) {
+        System.out.println("[Client] ERROR " + error);
         view.showError(error);
     }
 
     public void receiveDisconnect() {
+        System.out.println("[Client] DISCONNECT");
         view.showDisconnected();
     }
 
@@ -137,6 +184,7 @@ public class GameClient {
             view.showError("Not logged in yet.");
             return;
         }
+        System.out.println("[Client] QUEUE join");
         connection.sendQueue();
         inQueue = true;
     }
@@ -146,6 +194,7 @@ public class GameClient {
      */
     public void leaveQueue() {
         if (inQueue) {
+            System.out.println("[Client] QUEUE leave");
             connection.sendQueue();
             inQueue = false;
         }
@@ -155,6 +204,7 @@ public class GameClient {
      * Request the list of online players.
      */
     public void requestPlayerList() {
+        System.out.println("[Client] LIST requested");
         connection.sendList();
     }
 
@@ -168,6 +218,7 @@ public class GameClient {
             view.showError("Not in a game.");
             return;
         }
+        System.out.println("[Client] SEND MOVE pos=" + position + " nextPieceId=" + nextPieceId);
         connection.sendMove(position, nextPieceId);
     }
 
@@ -180,6 +231,7 @@ public class GameClient {
             view.showError("Not in a game.");
             return;
         }
+        System.out.println("[Client] SEND MOVE(first) pieceId=" + pieceId);
         connection.sendFirstMove(pieceId);
     }
 

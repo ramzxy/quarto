@@ -4,7 +4,6 @@ import Networking.SocketConnection;
 import Protocol.PROTOCOL;
 
 import java.io.IOException;
-import java.net.Socket;
 
 /**
  * Client-side connection that handles protocol parsing and delegates to GameClient.
@@ -39,6 +38,7 @@ public class ClientConnection extends SocketConnection {
         if (message == null || message.isEmpty()) {
             return;
         }
+        System.out.println("[Client] RX: " + message);
         
         String[] parts = message.split(PROTOCOL.SEPARATOR);
         

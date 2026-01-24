@@ -1,8 +1,10 @@
-package Game;
+package game;
+
+import Game.Game;
+import Game.Move;
 
 import Client.HumanPlayer;
-import Game.Move;
-import Game.Game;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ public class GameTest {
     @BeforeEach
     public void setUp(){
         // game.start(); // Removed to prevent infinite loop
+        System.out.println("DEBUG: Class Name = " + this.getClass().getName());
         game.pickCurrentPiece(game.getAvailablePieces().get(0));
         validMoves = game.getValidMoves();
     }

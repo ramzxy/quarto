@@ -69,20 +69,10 @@ public class AIClientApplication {
             
             System.out.println("Selected Strategy: " + strategy.getName());
             
-            // 4. Create and Start Client
             AIGameClient client = new AIGameClient(host, port, view, strategy);
             view.setClient(client);
             client.start();
-            
-            // Keep main thread alive
-            while(true) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

@@ -1,12 +1,10 @@
 package Client.views;
 
 import Client.GameClient;
-import Client.ComputerPlayer;
-import Game.AbstractPlayer;
+
+
 import Game.Game;
 import Game.Move;
-import Game.Piece;
-import ai.Strategy;
 
 import java.util.Scanner;
 
@@ -45,9 +43,8 @@ public class AITUI implements ClientView {
 
     @Override
     public void displayGame(Game game) {
-        System.out.println(game.getBoard().toString(null));
+        //System.out.println(game.getBoard().toString(null));
     }
-
 
 
     @Override
@@ -55,65 +52,12 @@ public class AITUI implements ClientView {
         System.out.println("Game started: " + player1 + " vs " + player2);
         if (iAmFirst) {
             System.out.println("AI is starting (picking first piece)...");
-            performFirstMove();
         }
     }
 
     @Override
     public void showMove(String[] moveParts) {
         System.out.println("Move received: " + String.join(" ", moveParts));
-
-        // If it was opponent's move (or they gave us a piece), it might be our turn now.
-        // GameClient updates localGame BEFORE calling showMove.
-        // So we can check localGame state.
-
-        Game game = client.getLocalGame();
-        if (game == null) return;
-
-        // Don't make a move if the game is already over
-        if (game.isGameOver()) return;
-
-        // If it is our turn to place a piece
-        if (game.getCurrentPlayerName().equals(client.getPlayer().getName())) {
-            // We have a piece to place?
-            if (game.getCurrentPiece() != null) {
-                System.out.println("AI Turn: Placing piece and picking next...");
-                performMove(game);
-            }
-        }
-    }
-
-    private void performFirstMove() {
-        Game game = client.getLocalGame();
-        AbstractPlayer player = client.getPlayer();
-        if (player instanceof ComputerPlayer) {
-            Strategy strat = ((ComputerPlayer) player).getStrategy();
-            Piece piece = strat.pickPieceForOpponent(game);
-            if (piece != null) {
-                System.out.println("AI picked piece " + piece.getId());
-                client.makeFirstMove(piece.getId());
-            } else {
-                System.out.println("AI failed to pick piece!");
-            }
-        }
-    }
-
-    private void performMove(Game game) {
-        AbstractPlayer player = client.getPlayer();
-        if (player instanceof ComputerPlayer) {
-            Strategy strat = ((ComputerPlayer) player).getStrategy();
-
-            Move move = strat.computeMove(game);
-
-            Piece nextPiece = strat.pickPieceForOpponent(game);
-
-            if (move != null && nextPiece != null) {
-                System.out.println("AI placing at " + move.getBoardIndex() + ", giving piece " + nextPiece.getId());
-                client.makeMove(move.getBoardIndex(), nextPiece.getId());
-            } else {
-                System.out.println("AI could not make a move!");
-            }
-        }
     }
 
     @Override
@@ -137,7 +81,6 @@ public class AITUI implements ClientView {
         System.err.println("Error: " + error);
         if (error.contains("already in use")) {
             // Handle retry if possible?
-            // But GameClient calls receiveAlreadyLoggedIn which prompts username...
         }
     }
 
