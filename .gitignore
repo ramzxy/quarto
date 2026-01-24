@@ -4,3 +4,4 @@ project-109.iml
 /out/
 /gradle/
 /.gradle/
+/.gradle/*
