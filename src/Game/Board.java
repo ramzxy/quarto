@@ -281,7 +281,7 @@ public class Board {
     /**
      * Helper to find a piece in a list using its ID.
      */
-    private Piece findPieceById(java.util.List<Piece> pieces, int id) {
+    public Piece findPieceById(java.util.List<Piece> pieces, int id) {
         for (Piece p : pieces) {
             if (p.getId() == id) {
                 return p;

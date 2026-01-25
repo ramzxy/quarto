@@ -37,14 +37,4 @@ public class GameTest {
         Assertions.assertTrue(game.doMove(validMoves.get(1)));
         Assertions.assertTrue(game.doMove(validMoves.get(5)));
     }
-
-    @Test
-    public void testNotifyMove(){
-
-    }
-
-    @Test
-    public void testNotifyGameOver(){
-
-    }
 }
