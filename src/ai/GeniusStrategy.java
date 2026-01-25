@@ -7,6 +7,7 @@ import Game.Board;
 import Game.Game;
 import Game.Move;
 import Game.Piece;
+import Protocol.PROTOCOL;
 
 /**
  * Advanced AI strategy using Zobrist hashing, bitboards, and negamax.
@@ -14,31 +15,32 @@ import Game.Piece;
  */
 public class GeniusStrategy implements Strategy {
     
-    // Zobrist Hashing
+    // Zobrist Hashing (for remembering board states)
     private static final long[][] Z_SQUARE_PIECE = new long[16][16]; // [square][pieceId]
     private static final long[] Z_NEXT_PIECE = new long[16];   // [pieceId]
     
-    // D4 Symmetry: 8 transformations of 16 board indices
-    // SYMMETRIES[sym][new_idx] = old_idx (maps transformed position to original)
+    // D4 Symmetry: The board can be rotated and flipped 8 ways.
+    // If we only store one "canonical" version, we save memory.
     private static final int[][] SYMMETRIES = {
-        {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},     // Identity
-        {12,8,4,0,13,9,5,1,14,10,6,2,15,11,7,3},     // 90° CW
-        {15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0},     // 180°
-        {3,7,11,15,2,6,10,14,1,5,9,13,0,4,8,12},     // 270° CW
+        {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},     // Normal
+        {12,8,4,0,13,9,5,1,14,10,6,2,15,11,7,3},     // Rotated 90
+        {15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0},     // 180
+        {3,7,11,15,2,6,10,14,1,5,9,13,0,4,8,12},     // 270
         {3,2,1,0,7,6,5,4,11,10,9,8,15,14,13,12},     // Horizontal flip
         {12,13,14,15,8,9,10,11,4,5,6,7,0,1,2,3},     // Vertical flip
-        {0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15},     // Main diagonal
-        {15,11,7,3,14,10,6,2,13,9,5,1,12,8,4,0}      // Anti-diagonal
+        {0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15},     // Main diagonal flip
+        {15,11,7,3,14,10,6,2,13,9,5,1,12,8,4,0}      // Anti-diagonal flip
     };
     
-    // INVERSE_SYMMETRIES[sym][canonical_idx] = original_idx
+    // Reverse map to get back to original squares
     private static final int[][] INVERSE_SYMMETRIES = new int[8][16];
     
-    // Opening optimization: unique orbit representatives (Corner, Edge, Center)
+    // If the board is empty, we only need to check these 3 squares
+    // because all others are just symmetries of these.
     private static final int[] OPENING_SQUARES = {0, 1, 5};
     
-    // Transposition Table
-    private static final int TT_SIZE = 1 << 20; // 1M entries
+    // Transposition Table (Memory)
+    private static final int TT_SIZE = 1 << 20; // 1 Million entries
     private static final long[] TT_KEYS = new long[TT_SIZE];    // Hash keys for verification
     private static final long[] TT_VALUES = new long[TT_SIZE];  // Packed: score(16) | depth(8) | flag(8)
     private static final int[] TT_MOVES = new int[TT_SIZE];     // Packed: (sq << 8) | (nextP << 4) | sym
@@ -48,17 +50,14 @@ public class GeniusStrategy implements Strategy {
     private static final int TT_ALPHA = 1; // Upper bound (failed low)
     private static final int TT_BETA = 2;  // Lower bound (failed high)
 
-    // Weights
+    // Weights for AI decision making
     private static final double W_CONSTRAINT = 1.5;
     private static final double W_DECEPTION = 3.0;
 
-    // Precomputed Winning Masks
+    // Precomputed Winning Masks (lines on the board)
     private static final int[] WIN_MASKS = initializeWinMasks();
     
-    // Cache for move computation
-    private Move cachedMove;
-    
-    // Pre-allocated arrays for garbage-free canonical hash computation
+    // Reusable arrays to save memory turnover
     private final int[] piecesOnBoard = new int[16];  // Reused for hash computation (-1 = empty)
     private final long[] symHashes = new long[8];     // Reused for 8 symmetry hashes
 
@@ -76,10 +75,9 @@ public class GeniusStrategy implements Strategy {
     }
     
     /**
-     * Computes canonical hash across all 8 D4 symmetries.
-     * Uses pre-allocated piecesOnBoard and symHashes arrays.
-     * @param pieceToPlace piece ID to place (-1 if none)
-     * @return packed long: canonical hash in upper 60 bits, best symmetry in lower 4 bits
+     * Calculates the "canonical" hash.
+     * It checks all 8 rotations/flips and picks the smallest hash value.
+     * This way, all rotated versions of the board look the same to the AI.
      */
     private long computeCanonicalHash(int pieceToPlace) {
         long minHash = Long.MAX_VALUE;
@@ -100,28 +98,20 @@ public class GeniusStrategy implements Strategy {
             }
             symHashes[sym] = h;
             
-            // Use unsigned comparison for consistent ordering
+            // Unsigned comparison to find the smallest hash
             if (Long.compareUnsigned(h, minHash) < 0) {
                 minHash = h;
                 minSym = sym;
             }
         }
         
-        // Pack: shift hash left by 4 bits, store symmetry in lower 4 bits
-        // Note: This loses 4 bits of hash precision but symmetry index fits in 3 bits
+        // Return hash combined with which symmetry it was
         return (minHash & 0xFFFFFFFFFFFFFFF0L) | (minSym & 0xF);
     }
     
     /**
-     * Computes canonical hash for a modified board state (after placing a piece).
-     * Garbage-free: operates directly on bitboards without array allocation.
-     * @param tall tall bitboard
-     * @param round round bitboard
-     * @param solid solid bitboard
-     * @param dark dark bitboard
-     * @param occupied occupied bitboard
-     * @param pieceToPlace piece ID to place (-1 if none)
-     * @return packed long: canonical hash in upper bits, best symmetry in lower 4 bits
+     * Same as above, but working directly with bitboards (integers)
+     * instead of Piece objects. Faster.
      */
     private long computeCanonicalHashFromBitboards(int tall, int round, int solid, int dark, int occupied, int pieceToPlace) {
         long minHash = Long.MAX_VALUE;
@@ -133,14 +123,16 @@ public class GeniusStrategy implements Strategy {
             
             for (int newIdx = 0; newIdx < 16; newIdx++) {
                 int oldIdx = symMap[newIdx];
+                // Check if the bit at 'oldIdx' is set (1)
+                // (1 << oldIdx) creates a number with only that bit set.
                 if ((occupied & (1 << oldIdx)) != 0) {
-                    // Reconstruct piece ID from bitboards
+                    // Reconstruct piece ID from the 4 property bitboards
                     // Server encoding: bit0=dark, bit1=tall, bit2=square, bit3=hollow
                     int pieceId = 0;
-                    if ((dark & (1 << oldIdx)) != 0) pieceId |= 1;   // bit 0 = dark
-                    if ((tall & (1 << oldIdx)) != 0) pieceId |= 2;   // bit 1 = tall
-                    if ((round & (1 << oldIdx)) == 0) pieceId |= 4;  // bit 2 = square (!round)
-                    if ((solid & (1 << oldIdx)) == 0) pieceId |= 8;  // bit 3 = hollow (!solid)
+                    if ((dark & (1 << oldIdx)) != 0) pieceId |= 1;   
+                    if ((tall & (1 << oldIdx)) != 0) pieceId |= 2;   
+                    if ((round & (1 << oldIdx)) == 0) pieceId |= 4;  // bit 2 is square (NOT round)
+                    if ((solid & (1 << oldIdx)) == 0) pieceId |= 8;  // bit 3 is hollow (NOT solid)
                     h ^= Z_SQUARE_PIECE[newIdx][pieceId];
                 }
             }
@@ -156,7 +148,8 @@ public class GeniusStrategy implements Strategy {
         
         return (minHash & 0xFFFFFFFFFFFFFFF0L) | (minSym & 0xF);
     }
-
+    
+    // Fill random numbers for hashing
     private static void initializeZobrist() {
         Random rand = new Random(123456789L); // Fixed seed for determinism
         for (int i = 0; i < 16; i++) {
@@ -167,6 +160,8 @@ public class GeniusStrategy implements Strategy {
         }
     }
 
+    // Pre-calculate winning lines as bitmasks
+    // Example: Row 0 is binary 0000 0000 0000 1111 (Dec 15)
     private static int[] initializeWinMasks() {
         int[] masks = new int[10]; // 4 rows, 4 cols, 2 diags
         int idx = 0;
@@ -174,6 +169,7 @@ public class GeniusStrategy implements Strategy {
         // Rows
         for (int r = 0; r < 4; r++) {
             int m = 0;
+            // Shift 1 into the 4 positions of the row
             for (int c = 0; c < 4; c++) m |= (1 << (r * 4 + c));
             masks[idx++] = m;
         }
@@ -185,21 +181,22 @@ public class GeniusStrategy implements Strategy {
             masks[idx++] = m;
         }
         
-        // Diag 1 (0, 5, 10, 15)
+        // Diag 1
         masks[idx++] = (1 << 0) | (1 << 5) | (1 << 10) | (1 << 15);
         
-        // Diag 2 (3, 6, 9, 12)
+        // Diag 2
         masks[idx++] = (1 << 3) | (1 << 6) | (1 << 9) | (1 << 12);
         
         return masks;
     }
 
-    // Helper to ingest standard OOP board as requested
+    // Convert game board to bitboards (integers)
     private void toBitboard(Board b, int[] state) {
         // state[0]=tall, [1]=round, [2]=solid, [3]=dark, [4]=occupied;
         for (int i = 0; i < 16; i++) {
             Piece p = b.getPiece(i);
             if (p != null) {
+                // Set the i-th bit to 1
                 state[4] |= (1 << i);
                 if (p.isTall) state[0] |= (1 << i);
                 if (p.isRound) state[1] |= (1 << i);
@@ -212,36 +209,27 @@ public class GeniusStrategy implements Strategy {
     @Override
     public Move computeMove(Game game) {
         // Compute the complete move (placement + next piece)
-        Move move = determineMove(game);
+        Move bestMove = determineMove(game);
         
-        // Cache the move so we can extract the next piece in pickPieceForOpponent()
-        cachedMove = move;
+        if (bestMove == null) return null;
         
-        // Return the move (which contains placement info)
-        return move;
-    }
-
-    @Override
-    public Piece pickPieceForOpponent(Game game) {
-        // If we have a cached move from computeMove(), use its next piece
-        if (cachedMove != null && cachedMove.getNextPiece() != null) {
-            Piece nextPiece = cachedMove.getNextPiece();
-            cachedMove = null; // Clear cache after use
-            return nextPiece;
+        // Protocol stuff for winning
+        if (bestMove.getBoardIndex() != -1) {
+             Board boardCopy = game.getBoard().copy();
+             boardCopy.setPiece(bestMove.getBoardIndex(), game.getCurrentPiece());
+             
+             if (boardCopy.hasWinningLine()) {
+                 return new Move(bestMove.getBoardIndex(), game.getCurrentPiece(), 
+                     new Piece(PROTOCOL.CLAIM_QUARTO, false, false, false, false));
+             }
+             
+             if (game.getAvailablePieces().isEmpty()) {
+                 return new Move(bestMove.getBoardIndex(), game.getCurrentPiece(), 
+                     new Piece(PROTOCOL.FINAL_PIECE_NO_CLAIM, false, false, false, false));
+             }
         }
         
-        // Otherwise, call determineMove() to get the move (handles first move case)
-        Move move = determineMove(game);
-        
-        // For first move, determineMove returns a Move with boardIndex=-1 and nextPiece set
-        // For regular moves, it returns a Move with both placement and nextPiece
-        if (move != null) {
-            return move.getNextPiece();
-        }
-        
-        // Fallback: pick first available piece
-        List<Piece> available = game.getAvailablePieces();
-        return available.isEmpty() ? null : available.get(0);
+        return bestMove;
     }
 
     private Move determineMove(Game game) {
@@ -256,7 +244,7 @@ public class GeniusStrategy implements Strategy {
         int dark = state[3];
         int occupied = state[4];
 
-        // 2. Encoded Available Pieces
+        // 2. Encoded Available Pieces into an integer
         int available = 0;
         List<Piece> availList = game.getAvailablePieces();
         for (Piece p : availList) {
@@ -267,11 +255,12 @@ public class GeniusStrategy implements Strategy {
         Piece currentP = game.getCurrentPiece();
         int pieceToPlaceId = (currentP != null) ? currentP.getId() : -1;
 
+        // If first turn
         if (pieceToPlaceId == -1) {
             return pickBestOpeningPiece(available, game);
         }
 
-        // 4. Iterative Deepening with Endgame Extension
+        // 4. Iterative Deepening
         long startTime = System.currentTimeMillis();
         long timeLimit = 2000; // 2 seconds max
         
@@ -294,8 +283,10 @@ public class GeniusStrategy implements Strategy {
         for (int depth = 1; depth <= maxDepth; depth++) {
             if (System.currentTimeMillis() - startTime > timeLimit) break;
             
+            // searchRoot returns a packed long: score in upper 32 bits, move in lower 32 bits
             long searchResult = searchRoot(depth, tall, round, solid, dark, occupied, available, pieceToPlaceId);
             
+            // Unpack the result (score, square, nextPiece)
             int score = (int)(searchResult >> 32);
             int movePacked = (int)searchResult;
             int bestSq = (movePacked >> 16) & 0xFFFF;

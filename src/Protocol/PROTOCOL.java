@@ -9,113 +9,110 @@ package Protocol;
  */
 public class PROTOCOL {
     
-    // ==================== Message Separator ====================
-    /** Separator character used between command and arguments */
+    // --- Message Separator ---
+    /**
+     * The character used to separate parts of a message.
+     * Example: COMMAND~arg1~arg2
+     */
     public static final String SEPARATOR = "~";
     
-    // ==================== Handshake Commands ====================
+    // --- Handshake Commands ---
     
     /** 
-     * Initiates/responds to handshake. 
-     * Client: HELLO~<description>[~extension]*
-     * Server: HELLO~<description>[~extension]*
+     * Initial greeting.
+     * Sent by both client and server to start communication.
      */
     public static final String HELLO = "HELLO";
     
     /** 
-     * Client: Claims a username. Format: LOGIN~<username>
-     * Server: Confirms successful login. Format: LOGIN
+     * Login command.
+     * Client sends: LOGIN~username
+     * Server replies: LOGIN (if success)
      */
     public static final String LOGIN = "LOGIN";
     
-    /** Username is already taken. Format: ALREADYLOGGEDIN */
+    /**
+     * Error sent if the username is already taken.
+     */
     public static final String ALREADYLOGGEDIN = "ALREADYLOGGEDIN";
     
-    // ==================== Lobby Commands ====================
+    // --- Lobby Commands ---
     
     /** 
-     * Client: Requests list of logged-in users. Format: LIST
-     * Server: Returns users. Format: LIST[~username]*
+     * Request a list of online users.
+     * Client: LIST
+     * Server: LIST~user1~user2...
      */
     public static final String LIST = "LIST";
     
     /** 
-     * Toggle queue status. Format: QUEUE 
-     * With NAMEDQUEUES extension: QUEUE[~name]
+     * Join or leave the game queue.
      */
     public static final String QUEUE = "QUEUE";
     
-    // ==================== Game Commands ====================
+    // --- Game Commands ---
     
     /** 
-     * Server notifies game start. Format: NEWGAME~<player1>~<player2>
-     * First player listed makes the first move.
+     * Server tells players a game is starting.
+     * Format: NEWGAME~player1~player2
+     * Player 1 goes first.
      */
     public static final String NEWGAME = "NEWGAME";
     
     /** 
-     * Client: Submits a move. 
-     *   First move: MOVE~<pieceId> (give piece to opponent)
-     *   Subsequent: MOVE~<position>~<pieceId> (place piece, give next)
-     * Server: Broadcasts move to all players in game.
-     * 
-     * Values: 0-15 = piece/position, 16 = claim Quarto, 17 = final piece no claim
+     * A move in the game.
+     * First turn: MOVE~pieceId (Picking the first piece)
+     * Other turns: MOVE~position~pieceId (Placing a piece + Picking next)
      */
     public static final String MOVE = "MOVE";
     
     /** 
-     * Game ended. Format: GAMEOVER~<reason>[~winner]
-     * Reasons: VICTORY, DRAW, DISCONNECT
+     * Tells players the game happened.
+     * Format: GAMEOVER~reason~winner
      */
     public static final String GAMEOVER = "GAMEOVER";
     
-    // ==================== GAMEOVER Reasons ====================
+    // --- GAMEOVER Reasons ---
     
-    /** Game ended with a winner */
+    /** Game ended because someone won. */
     public static final String VICTORY = "VICTORY";
     
-    /** Game ended in a draw */
+    /** Game ended in a draw. */
     public static final String DRAW = "DRAW";
     
-    /** Game ended due to player disconnect */
+    /** Game ended because someone disconnected. */
     public static final String DISCONNECT = "DISCONNECT";
     
-    // ==================== Error Handling ====================
+    // --- Error Handling ---
     
-    /** Protocol violation. Format: ERROR[~description] */
+    /**
+     * Sent when something goes wrong.
+     * Format: ERROR~message
+     */
     public static final String ERROR = "ERROR";
     
-    // ==================== Extensions ====================
+    // --- Extensions ---
     
-    // --- CHAT Extension ---
-    /** 
-     * Client: Broadcast message. Format: CHAT~<message>
-     * Server: Delivers message. Format: CHAT~<sender>~<message>
-     */
+    // Chat Extension
     public static final String CHAT = "CHAT";
-    
-    /** Private message. Format: WHISPER~<recipient/sender>~<message> */
     public static final String WHISPER = "WHISPER";
-    
-    /** Private message delivery failed. Format: CANNOTWHISPER~<recipient> */
     public static final String CANNOTWHISPER = "CANNOTWHISPER";
     
-    // --- RANK Extension ---
-    /** 
-     * Client: Request rankings. Format: RANK
-     * Server: Return rankings. Format: RANK[~username~score]*
-     */
+    // Rank Extension
     public static final String RANK = "RANK";
     
-    // --- NOISE Extension ---
-    /** Authentication failed with different public key. Format: WRONGKEY */
+    // Noise Extension
     public static final String WRONGKEY = "WRONGKEY";
     
-    // ==================== Special Move Values ====================
+    // --- Special Move Values ---
     
-    /** Claim Quarto (used as M value in MOVE command) */
+    /**
+     * Special value sent instead of a piece ID to claim a win.
+     */
     public static final int CLAIM_QUARTO = 16;
     
-    /** Place final piece without claiming Quarto */
+    /**
+     * Special value sent when placing the very last piece (no next piece to pick).
+     */
     public static final int FINAL_PIECE_NO_CLAIM = 17;
 }

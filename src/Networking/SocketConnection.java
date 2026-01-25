@@ -15,10 +15,10 @@ public abstract class SocketConnection {
     private boolean started = false;
 
     /**
-     * Create a new SocketConnection. This is not meant to be used directly.
-     * Instead, the SocketServer and SocketClient classes should be used.
-     * @param socket the socket for this connection
-     * @throws IOException if there is an I/O exception while initializing the Reader/Writer objects
+     * Initializer for the connection.
+     * Sets up the input/output streams to talk to the socket.
+     *
+     * @param socket The connected socket
      */
     protected SocketConnection(Socket socket) throws IOException {
         this.socket = socket;
@@ -27,30 +27,22 @@ public abstract class SocketConnection {
     }
 
     /**
-     * Make a new TCP connection to the given host and port.
-     * The receiving thread is not started yet. Call start on the returned SocketConnection to start receiving messages.
-     * @param host the address of the server to connect to
-     * @param port the port of the server to connect to
-     * @throws IOException if the connection cannot be made or there was some other I/O problem
+     * Creates a connection to a specific address and port.
      */
     protected SocketConnection(InetAddress host, int port) throws IOException {
         this(new Socket(host, port));
     }
 
     /**
-     * Make a new TCP connection to the given host and port.
-     * The receiving thread is not started yet. Call start on the returned SocketConnection to start receiving messages.
-     * @param host the address of the server to connect to
-     * @param port the port of the server to connect to
-     * @throws IOException if the connection cannot be made or there was some other I/O problem
+     * Creates a connection to a specific hostname and port.
      */
     protected SocketConnection(String host, int port) throws IOException {
         this(new Socket(host, port));
     }
 
     /**
-     * Start receiving messages and call methods of the given handler to handle the messages.
-     * This method may only be called once.
+     * Starts the listening thread.
+     * This makes it listen for incoming messages in the background.
      */
     protected void start() {
         if (started) {
@@ -62,9 +54,9 @@ public abstract class SocketConnection {
     }
 
     /**
-     * The thread that receives messages. For every message, it will call the handleMessage method.
-     * When starting the thread, it will call the handleStart method of the handler.
-     * When the connection is closed, it will call the handleDisconnect method of the handler.
+     * The loop that keeps reading messages.
+     * Reads line by line and sends them to handleMessage().
+     * If the connection breaks, it cleans up.
      */
     private void receiveMessages() {
         handleStart();
@@ -82,10 +74,11 @@ public abstract class SocketConnection {
     }
 
     /**
-     * Send a message over the network. The message will be sent as a single line.
-     * The message should not contain any newlines.
-     * @param message the message to send
-     * @return true if the message was sent successfully, false if the connection was closed
+     * Sends a text message to the other side.
+     * Adds a newline at the end automatically.
+     *
+     * @param message Text to send
+     * @return true if sent, false if failed
      */
     public boolean sendMessage(String message) {
         try {
@@ -101,7 +94,8 @@ public abstract class SocketConnection {
     }
 
     /**
-     * Close the network connection. This will also cause the thread that receives messages to stop.
+     * Closes the connection.
+     * Stops the listener and frees up resources.
      */
     protected void close() {
         try {
@@ -116,20 +110,21 @@ public abstract class SocketConnection {
     }
 
     /**
-     * Handles a start of the connection. This is invoked when the reading thread is started.
+     * Called when the connection starts.
      */
     protected void handleStart() {
         // do nothing by default
     }
 
     /**
-     * Handles a message received from the connection.
-     * @param message the message received from the connection
+     * Called whenever a new message arrives.
+     *
+     * @param message The text message received
      */
     protected abstract void handleMessage(String message);
 
     /**
-     * Handles a disconnect from the connection, i.e., when the connection is closed.
+     * Called when the connection ends.
      */
     protected abstract void handleDisconnect();
 }

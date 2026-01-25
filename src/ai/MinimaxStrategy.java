@@ -4,6 +4,7 @@ import Game.Board;
 import Game.Game;
 import Game.Move;
 import Game.Piece;
+import Protocol.PROTOCOL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,9 +20,10 @@ public class MinimaxStrategy implements Strategy {
     private boolean timeExpired;
 
     /**
-     * Creates a MinimaxStrategy with configurable parameters.
-     * @param maxDepth maximum search depth (use 3-5 for reasonable performance)
-     * @param thinkingTimeMs maximum thinking time in milliseconds (0 = no limit)
+     * Setup the Minimax AI.
+     *
+     * @param maxDepth How many moves ahead to look (eg. 5)
+     * @param thinkingTimeMs limit for the AI to think in ms
      */
     public MinimaxStrategy(int maxDepth, long thinkingTimeMs) {
         this.maxDepth = maxDepth;
@@ -29,14 +31,21 @@ public class MinimaxStrategy implements Strategy {
     }
 
     /**
-     * Default constructor: depth 4, 2 second limit.
+     * Default setup: depth 5, 5 seconds thinking time.
      */
     public MinimaxStrategy() {
-        this(4, 2000);
+        this(5, 5000);
     }
 
     @Override
     public Move computeMove(Game game) {
+        
+        // --- 1. First Move (No piece to place) ---
+        if (game.getCurrentPiece() == null) {
+            Piece nextPiece = pickBestNextPiece(game);
+            return new Move(-1, null, nextPiece);
+        }
+
         List<Move> validMoves = game.getValidMoves();
         if (validMoves.isEmpty()) {
             return null;
@@ -48,10 +57,12 @@ public class MinimaxStrategy implements Strategy {
         Move bestMove = validMoves.get(0);
         int bestScore = Integer.MIN_VALUE;
 
+        // --- 2. Find Best Placement ---
+        // Check every legal move
         for (Move move : validMoves) {
             if (isTimeExpired()) break;
             
-            // Simulate the move
+            // Score this move
             int score = evaluateMove(game, move);
             
             if (score > bestScore) {
@@ -61,15 +72,29 @@ public class MinimaxStrategy implements Strategy {
             
             // Immediate win found
             if (score >= 10000) {
-                return move;
+                 // Return winning move with CLAIM_QUARTO signal
+                 return new Move(move.getBoardIndex(), game.getCurrentPiece(), 
+                    new Piece(PROTOCOL.CLAIM_QUARTO, false, false, false, false));
             }
         }
+        
+        // --- 3. Pick Next Piece ---
+        Piece nextPiece;
+        if (game.getAvailablePieces().isEmpty()) {
+            // No pieces left to give -> Final piece signal
+            nextPiece = new Piece(PROTOCOL.FINAL_PIECE_NO_CLAIM, false, false, false, false);
+        } else {
+            nextPiece = pickBestNextPiece(game);
+        }
 
-        return bestMove;
+        return new Move(bestMove.getBoardIndex(), game.getCurrentPiece(), nextPiece);
     }
 
-    @Override
-    public Piece pickPieceForOpponent(Game game) {
+    /**
+     * Chooses the best piece to give to the opponent.
+     * 'Best' means the one least likely to let them win.
+     */
+    private Piece pickBestNextPiece(Game game) {
         List<Piece> available = game.getAvailablePieces();
         if (available.isEmpty()) {
             return null;
@@ -86,6 +111,7 @@ public class MinimaxStrategy implements Strategy {
             
             int risk = evaluatePieceRisk(game, piece);
             
+            // We want the piece with the LOWEST risk score
             if (risk < lowestRisk) {
                 lowestRisk = risk;
                 safestPiece = piece;
@@ -96,7 +122,8 @@ public class MinimaxStrategy implements Strategy {
     }
 
     /**
-     * Evaluates a move using minimax.
+     * Calculates a score for a move.
+     * Uses recursion (minimax) to look ahead.
      */
     private int evaluateMove(Game game, Move move) {
         Board copy = game.getBoard().copy();
@@ -113,7 +140,8 @@ public class MinimaxStrategy implements Strategy {
     }
 
     /**
-     * Evaluates the risk of giving a piece to opponent.
+     * Calculates how risky a piece is.
+     * Higher score = more risky (bad to give).
      */
     private int evaluatePieceRisk(Game game, Piece piece) {
         Board board = game.getBoard();
@@ -124,8 +152,9 @@ public class MinimaxStrategy implements Strategy {
             if (board.getPiece(i) == null) {
                 Board copy = board.copy();
                 copy.setPiece(i, piece);
+                // If they can win immediately with this piece, it's very risky
                 if (copy.hasWinningLine()) {
-                    risk += 1000; // This piece can win in this spot
+                    risk += 1000; 
                 }
             }
         }
@@ -134,7 +163,9 @@ public class MinimaxStrategy implements Strategy {
     }
 
     /**
-     * Minimax with alpha-beta pruning.
+     * The Minimax Algorithm.
+     * Recursively simulates moves to find the best outcome.
+     * Uses Alpha-Beta pruning to skip bad branches.
      */
     private int minimax(Board board, List<Piece> remainingPieces, int depth, boolean isMaximizing,
                         int alpha, int beta) {
@@ -143,6 +174,8 @@ public class MinimaxStrategy implements Strategy {
         }
 
         if (board.hasWinningLine()) {
+            // If maximizing won, positive score. If minimizing won, negative score.
+            // Prefer winning faster (add depth to score).
             return isMaximizing ? -10000 + (maxDepth - depth) : 10000 - (maxDepth - depth);
         }
 
@@ -152,7 +185,9 @@ public class MinimaxStrategy implements Strategy {
 
         if (isMaximizing) {
             int maxEval = Integer.MIN_VALUE;
+            // Try all pieces we can pick
             for (Piece piece : remainingPieces) {
+                // Try all spots to place
                 for (int pos = 0; pos < 16; pos++) {
                     if (board.getPiece(pos) == null) {
                         Board copy = board.copy();
@@ -192,7 +227,8 @@ public class MinimaxStrategy implements Strategy {
     }
 
     /**
-     * Static board evaluation.
+     * Gives a score to a non-ending board state.
+     * Simple logic: Center squares are better.
      */
     private int evaluateBoard(Board board) {
         int score = 0;

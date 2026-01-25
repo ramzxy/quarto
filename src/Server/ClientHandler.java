@@ -23,9 +23,10 @@ public class ClientHandler {
     private static final String SERVER_DESCRIPTION = "Quarto Server";
 
     /**
-     * Creates a new handler for a client connection.
-     * @param client the client socket
-     * @param gameManager the shared game manager instance
+     * Creates a new handler for a single client connection.
+     *
+     * @param client The socket connection to the client
+     * @param gameManager Reference to the main game manager
      */
     public ClientHandler(Socket client, GameManager gameManager) throws IOException {
         this.connection = new ServerConnection(client);
@@ -36,7 +37,7 @@ public class ClientHandler {
     }
 
     /**
-     * Starts the connection's receive loop.
+     * Starts listening for messages from this client.
      */
     public void start() {
         connection.start();
@@ -44,6 +45,11 @@ public class ClientHandler {
 
     // --- Protocol receive handlers (called by ServerConnection) ---
 
+    /**
+     * Handshake step. Client says hello.
+     * @param clientDescription Description of the client
+     * @param extensions Client's supported extensions
+     */
     public void receiveHello(String clientDescription, String[] extensions) {
         if (state != ClientState.CONNECTED) {
             connection.sendError("Already completed handshake");
@@ -58,6 +64,10 @@ public class ClientHandler {
         state = ClientState.HELLO_RECEIVED;
     }
 
+    /**
+     * Login step. Client tries to claim a username.
+     * @param name The desired username
+     */
     public void receiveLogin(String name) {
         if (state != ClientState.HELLO_RECEIVED) {
             connection.sendError("Must send HELLO first");
@@ -74,6 +84,9 @@ public class ClientHandler {
         }
     }
 
+    /**
+     * Request list of players.
+     */
     public void receiveList() {
         if (state != ClientState.LOGGED_IN && state != ClientState.IN_QUEUE && state != ClientState.IN_GAME) {
             connection.sendError("Must login first");
@@ -84,6 +97,9 @@ public class ClientHandler {
         connection.sendList(users.toArray(new String[0]));
     }
 
+    /**
+     * Join or leave the game queue.
+     */
     public void receiveQueue() {
         if (state == ClientState.IN_GAME) {
             // Ignore queue while in game
@@ -105,6 +121,10 @@ public class ClientHandler {
         }
     }
 
+    /**
+     * Handles the very first move of the game (picking a piece).
+     * @param pieceId The piece to give to the opponent
+     */
     public void receiveFirstMove(int pieceId) {
         Server.log("ClientHandler", playerName + " sending FirstMove: " + pieceId);
         if (state != ClientState.IN_GAME || gameSession == null) {
@@ -138,6 +158,12 @@ public class ClientHandler {
         gameSession.broadcastMove(-1, pieceId);
     }
 
+    /**
+     * Handles a normal game move (place piece + pick next piece).
+     * @param position Board position to place current piece
+     * @param nextPieceId The piece to give to opponent
+     */
+    //TODO: CLEAN UP THE METHOD
     public void receiveMove(int position, int nextPieceId) {
         Server.log("ClientHandler", playerName + " sending Move: pos=" + position + ", next=" + nextPieceId);
         if (state != ClientState.IN_GAME || gameSession == null) {
@@ -214,12 +240,15 @@ public class ClientHandler {
         }
     }
 
+    /**
+     * Handle client disconnect.
+     */
     public void receiveDisconnect() {
         gameManager.handleDisconnect(this);
     }
 
     /**
-     * Clears game-related state after a game ends.
+     * Reset state after game.
      */
     void clearGameState() {
         state = ClientState.LOGGED_IN;
@@ -229,8 +258,8 @@ public class ClientHandler {
     // --- Called by GameManager ---
 
     /**
-     * Called when this client starts a game.
-     * @param session the game session
+     * Helper to start a game session.
+     * @param session The game session
      */
     public void startGame(GameSession session) {
         this.gameSession = session;
@@ -238,7 +267,9 @@ public class ClientHandler {
     }
 
     /**
-     * Sends NEWGAME message to this client.
+     * Sends the NEWGAME message.
+     * @param player1 Name of player 1
+     * @param player2 Name of player 2
      */
     public void sendNewGame(String player1, String player2) {
         connection.sendNewGame(player1, player2);

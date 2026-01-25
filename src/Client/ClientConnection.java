@@ -13,25 +13,28 @@ public class ClientConnection extends SocketConnection {
     private GameClient gameClient;
 
     /**
-     * Create a new ClientConnection by connecting to the given host and port.
-     * @param host the address of the server to connect to
-     * @param port the port of the server to connect to
-     * @throws IOException if the connection cannot be made
+     * Creates a connection to the server.
+     *
+     * @param host Server address
+     * @param port Server port
      */
     public ClientConnection(String host, int port) throws IOException {
         super(host, port);
     }
 
     /**
-     * Sets the game client to delegate events to.
-     * @param gameClient the game client
+     * Link this connection to the Game Client so we can pass messages back.
+     *
+     * @param gameClient The client logic handler
      */
     public void setGameClient(GameClient gameClient) {
         this.gameClient = gameClient;
     }
 
     /**
-     * Parses incoming protocol messages and delegates to GameClient.
+     * Reads messages from the server and tells the GameClient what to do.
+     *
+     * @param message The raw string message from the server
      */
     @Override
     protected void handleMessage(String message) {
@@ -98,26 +101,51 @@ public class ClientConnection extends SocketConnection {
         gameClient.receiveDisconnect();
     }
 
+    // --- Sending methods ---
+
+    /**
+     * Sends the handshake hello.
+     * @param clientDescription Name/Description of this client
+     */
     public void sendHello(String clientDescription) {
         sendMessage(PROTOCOL.HELLO + PROTOCOL.SEPARATOR + clientDescription);
     }
 
+    /**
+     * Sends a login request.
+     * @param username Desired username
+     */
     public void sendLogin(String username) {
         sendMessage(PROTOCOL.LOGIN + PROTOCOL.SEPARATOR + username);
     }
 
+    /**
+     * Requests the list of users.
+     */
     public void sendList() {
         sendMessage(PROTOCOL.LIST);
     }
 
+    /**
+     * Joins or leaves the queue.
+     */
     public void sendQueue() {
         sendMessage(PROTOCOL.QUEUE);
     }
 
+    /**
+     * Sends a normal move.
+     * @param position Board index (0-15)
+     * @param pieceId Next piece for opponent (0-15)
+     */
     public void sendMove(int position, int pieceId) {
         sendMessage(PROTOCOL.MOVE + PROTOCOL.SEPARATOR + position + PROTOCOL.SEPARATOR + pieceId);
     }
 
+    /**
+     * Sends the first move (just giving a piece).
+     * @param pieceId Only the piece to give
+     */
     public void sendFirstMove(int pieceId) {
         sendMessage(PROTOCOL.MOVE + PROTOCOL.SEPARATOR + pieceId);
     }
