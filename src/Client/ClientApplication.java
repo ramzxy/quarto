@@ -27,11 +27,13 @@ public class ClientApplication {
                  }
             } else {
                  // Interactive Mode
-                 System.out.print("Enter server address (default: " + DEFAULT_HOST + "): ");
+                 System.out.println("Enter server address (default: " + DEFAULT_HOST + "):");
+                 System.out.print("> ");
                  String inputHost = view.readLine();
                  if (!inputHost.isEmpty()) host = inputHost;
                  
-                 System.out.print("Enter server port (default: " + DEFAULT_PORT + "): ");
+                 System.out.println("Enter server port (default: " + DEFAULT_PORT + "):");
+                 System.out.print("> ");
                  String inputPort = view.readLine();
                  if (!inputPort.isEmpty()) {
                      try {

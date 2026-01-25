@@ -114,6 +114,11 @@ public class ClientHandler {
         }
         
         Game game = gameSession.getGame();
+
+        if (!game.getCurrentPlayerName().equals(playerName)) {
+             connection.sendError("Not your turn");
+             return;
+        }
         
         // First move: player picks a piece to give to opponent (MOVE~<pieceId>)
         Piece piece = game.getPieceById(pieceId);
@@ -142,6 +147,11 @@ public class ClientHandler {
         }
         
         Game game = gameSession.getGame();
+
+        if (!game.getCurrentPlayerName().equals(playerName)) {
+             connection.sendError("Not your turn");
+             return;
+        }
         
         // Get the current piece to place (was set by opponent's previous move)
         Piece currentPiece = game.getCurrentPiece();
@@ -190,8 +200,8 @@ public class ClientHandler {
                 if (game.getBoard().hasWinningLine()) {
                     winner = playerName;
                 } else {
-                    // Wrong claim - opponent wins
-                    winner = game.getOpponentName();
+                    // Since doMove() already swapped turns, the "current player" is now the opponent
+                    winner = game.getCurrentPlayerName();
                 }
                 game.setResult(PROTOCOL.VICTORY, winner);
                 gameManager.endGame(gameSession, PROTOCOL.VICTORY, winner);
