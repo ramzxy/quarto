@@ -19,9 +19,9 @@ public class Server extends SocketServer {
     private GameManager gameManager;
 
     /**
-     * Creates a new server instance on the given port.
-     * @param port the port to listen on
-     * @throws IOException if the port cannot be bound
+     * Sets up the server data.
+     *
+     * @param port The port to open
      */
     public Server(int port) throws IOException {
         super(port);
@@ -31,9 +31,11 @@ public class Server extends SocketServer {
 
 
     /**
-     * Creates a server, prompting for a new port if the initial one is unavailable.
-     * @param initialPort the initial port to try
-     * @return the created Server instance
+     * Configures the server, handling port conflicts.
+     * If the port is taken, it asks for a new one.
+     *
+     * @param initialPort The first port to try
+     * @return The ready Server object
      */
     public static Server create(int initialPort) {
         Scanner input = new Scanner(System.in);
@@ -56,8 +58,7 @@ public class Server extends SocketServer {
     }
 
     /**
-     * Starts accepting client connections.
-     * This method blocks until the server is closed.
+     * Starts the main loop to accept new players.
      */
     public void run() {
         running = true;
@@ -69,9 +70,8 @@ public class Server extends SocketServer {
     }
 
     /**
-     * Handles a new client connection by creating a ClientHandler.
-     *
-     * @param socket the client socket
+     * Called when a new client connects.
+     * Creates a handler for them.
      */
     @Override
     protected void handleConnection(Socket socket) {
@@ -89,7 +89,7 @@ public class Server extends SocketServer {
     }
 
     /**
-     * Stops the server and closes all client connections.
+     * Shuts down the server.
      */
     public void stop() {
         running = false;
@@ -98,14 +98,14 @@ public class Server extends SocketServer {
     }
 
     /**
-     * @return true if the server is running
+     * Check if server is running.
      */
     public boolean isRunning() {
         return running;
     }
 
     /**
-     * @return the port the server is listening on
+     * Get the port number.
      */
     public int getServerPort() {
         return getPort();

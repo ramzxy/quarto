@@ -14,6 +14,10 @@ public class GameManager {
     private Map<String, ClientHandler> loggedInUsers;
     private Map<Game, GameSession> activeSessions;
 
+    /**
+     * Creates the Game Manager.
+     * Use this to manage players, queues, and active games.
+     */
     public GameManager() {
         this.waitingQueue = new ConcurrentLinkedQueue<>();
         this.loggedInUsers = Collections.synchronizedMap(new HashMap<>());
@@ -21,10 +25,12 @@ public class GameManager {
     }
 
     /**
-     * Attempts to register a unique username for a client.
-     * @param name the desired username
-     * @param client the client handler
-     * @return true if registration succeeded, false if username is taken
+     * Tries to register a username.
+     * Returns true if the name is available, false if taken.
+     *
+     * @param name The username to check
+     * @param client The client asking for the name
+     * @return true if successful
      */
     public boolean registerUsername(String name, ClientHandler client) {
         synchronized (loggedInUsers) {
@@ -37,8 +43,9 @@ public class GameManager {
     }
 
     /**
-     * Releases a username, making it available for others.
-     * @param name the username to release
+     * Frees up a username so someone else can use it.
+     *
+     * @param name The username to release
      */
     public void releaseUsername(String name) {
         if (name != null) {
@@ -47,16 +54,19 @@ public class GameManager {
     }
 
     /**
-     * Returns a list of all currently logged-in usernames.
-     * @return list of usernames
+     * Gets a list of everyone currently logged in.
+     *
+     * @return List of usernames
      */
     public List<String> getLoggedInUsers() {
         return new ArrayList<>(loggedInUsers.keySet());
     }
 
     /**
-     * Adds a client to the matchmaking queue and attempts to pair players.
-     * @param client the client to queue
+     * Adds a player to the waiting line for a game.
+     * Automatically tries to make a match after adding.
+     *
+     * @param client The player joining the queue
      */
     public void queueForGame(ClientHandler client) {
         waitingQueue.add(client);
@@ -64,7 +74,9 @@ public class GameManager {
     }
 
     /**
-     * Checks if two or more players are waiting and pairs them into games.
+     * Checks if we have enough players to start a game.
+     * If yes, it creates a game for them.
+     * Thread-safe.
      */
     private synchronized void tryMatchPlayers() {
         while (waitingQueue.size() >= 2) {
@@ -78,30 +90,32 @@ public class GameManager {
     }
 
     /**
-     * Removes a client from the matchmaking queue.
-     * @param client the client to remove
+     * Removes a player from the waiting line.
+     *
+     * @param client The player leaving the queue
      */
     public void removeFromQueue(ClientHandler client) {
         waitingQueue.remove(client);
     }
 
     /**
-     * Creates a new game session between two players, notifies them with NEWGAME, and tracks the session.
-     * First player listed makes the first move.
-     * @param p1 the first player (will move first)
-     * @param p2 the second player
-     * @return the newly created GameSession instance
+     * Starts a new game between two players.
+     * Sends the NEWGAME message to both.
+     *
+     * @param p1 Player 1
+     * @param p2 Player 2
+     * @return The new GameSession
      */
     public GameSession createGame(ClientHandler p1, ClientHandler p2) {
         Game game = new Game(new ServerPlayer(p1.getPlayerName()), new ServerPlayer(p2.getPlayerName()));
         GameSession session = new GameSession(game, p1, p2);
         activeSessions.put(game, session);
         
-        // Initialize game state for both clients
+        // Tells the clients the game is starting
         p1.startGame(session);
         p2.startGame(session);
         
-        // NEWGAME~player1~player2 - first player moves first
+        // Notify them who is playing whom
         p1.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
         p2.sendNewGame(p1.getPlayerName(), p2.getPlayerName());
         
@@ -110,10 +124,12 @@ public class GameManager {
     }
 
     /**
-     * Ends a game session by broadcasting game over and cleaning up.
-     * @param session the game session to end
-     * @param reason the game end reason (VICTORY, DRAW)
-     * @param winner the winner's name, or null for DRAW
+     * Cleanly ends a game.
+     * Tells players the result and removes the game from the active list.
+     *
+     * @param session The game session
+     * @param reason Why it ended (VICTORY, DRAW)
+     * @param winner Who won (or null)
      */
     public void endGame(GameSession session, String reason, String winner) {
         session.broadcastGameOver(reason, winner);
@@ -121,8 +137,7 @@ public class GameManager {
     }
 
     /**
-     * Cleans up a finished game session by clearing player states and removing from active sessions.
-     * @param session the game session to clean up
+     * Internal helper to remove a session.
      */
     private void cleanupSession(GameSession session) {
         session.getPlayer1().clearGameState();
@@ -131,14 +146,16 @@ public class GameManager {
     }
 
     /**
-     * Handles all cleanup when a client disconnects.
-     * @param client the disconnected client
+     * Handles what happens when a player disconnects.
+     * Removes them from queues, games, and frees their name.
+     *
+     * @param client The disconnected client
      */
     public void handleDisconnect(ClientHandler client) {
         removeFromQueue(client);
         releaseUsername(client.getPlayerName());
         
-        // If in a game, notify opponent and clean up both players
+        // If they were in a game, tell the other player
         GameSession session = client.getGameSession();
         if (session != null) {
             session.notifyOpponentDisconnect(client);

@@ -8,13 +8,14 @@ public class Piece {
     public final boolean isDark;
 
     /**
-     * Constructs a unique piece based on their characteristics and giving each one an id.
+     * Creates a new Piece.
+     * Pieces cannot be changed after creation (immutable).
      *
-     * @param id       unique id given to every piece
-     * @param isHollow solid or hollow
-     * @param isRound  round or square
-     * @param isLarge  tall or short
-     * @param isDark   dark or light-colored
+     * @param id Unique number ID (0-15)
+     * @param isHollow True if hollow
+     * @param isRound True if round
+     * @param isLarge True if tall
+     * @param isDark True if dark
      */
     public Piece(int id, boolean isHollow, boolean isRound, boolean isLarge, boolean isDark) {
         this.id = id;
@@ -24,15 +25,14 @@ public class Piece {
         this.isTall = isLarge;
     }
 
+    /**
+     * Gets the ID of the piece.
+     */
     public int getId(){return this.id;}
 
     /**
-     * Formats a piece to a string representation:
-     * Shape: () = Round, [] = Square
-     * Color: D = Dark, L = Light
-     * Solid: * = Solid, . = Hollow
-     * Height: ^ = Tall, _ = Short
-     * Format: [D*^] or (L._)
+     * Returns a string for the TUI.
+     * Example: [D*^] meaning Square, Dark, Solid, Tall.
      */
     @Override
     public String toString() {

@@ -4,16 +4,19 @@ public class Board {
     final int BOARD_SIZE = 4;
     private final Piece[] fields = new Piece[BOARD_SIZE*BOARD_SIZE];
     /*
-    0 -     1 -     2 -     3
-    4 -     5 -     6 -     7
-    8 -     9 -     10 -    11
-    12 -    13 -    14 -    15
+     * Board Index Mapping:
+     * 0  - 1  - 2  - 3
+     * 4  - 5  - 6  - 7
+     * 8  - 9  - 10 - 11
+     * 12 - 13 - 14 - 15
      */
 
     /**
-     * Gets a particular piece in the field.
-     * @param index index of the piece in the board
-     * @return the piece object being referred to, will return null if it's invalid
+     * Gets the piece at the specified index.
+     * Index 0 to 15.
+     *
+     * @param index The position on the board (0-15)
+     * @return The piece at that position, or null if it's empty
      */
     public Piece getPiece(int index){
         if(index >= fields.length || index < 0) {
@@ -26,9 +29,10 @@ public class Board {
     }
 
     /**
-     * Sets a particular piece in the field.
-     * @param index index of the piece being placed
-     * @param piece the piece object that is being played
+     * Puts a piece on the board at a specific spot.
+     *
+     * @param index The position index (0-15)
+     * @param piece The piece to place there
      */
     public void setPiece(int index, Piece piece){
         try{
@@ -39,12 +43,16 @@ public class Board {
     }
 
     /**
-     * Checks if 4 pieces share at least one common attribute (all same value).
-     * @param a Piece 1
-     * @param b Piece 2
-     * @param c Piece 3
-     * @param d Piece 4
-     * @return true if all pieces share at least one attribute
+     * Checks if 4 pieces make a winning line (row, column, or diagonal).
+     * To win, they must share at least one trait (like all Tall or all Dark).
+     *
+     * Traits checked: Color, Height, Shape, Solidity.
+     *
+     * @param a First piece
+     * @param b Second piece
+     * @param c Third piece
+     * @param d Fourth piece
+     * @return true if they share a trait, false otherwise
      */
     private boolean lineChecker(Piece a, Piece b, Piece c, Piece d) {
         return allSame(a.isDark, b.isDark, c.isDark, d.isDark)
@@ -54,27 +62,32 @@ public class Board {
     }
 
     /**
-     * Checks if all 4 boolean values are identical.
-     * @return true if all values are the same (all true or all false)
+     * Returns true if all 4 boolean values are the same (all true or all false).
      */
     private boolean allSame(boolean v1, boolean v2, boolean v3, boolean v4) {
         return v1 == v2 && v2 == v3 && v3 == v4;
     }
 
     /**
-     * Checks if there is a winning line on the board.
-     * @return true if there is a winning line, false if there isn't
+     * Checks if there is a winner anywhere on the board.
+     * Looks at rows, columns, and diagonals.
+     *
+     * @return true if someone has won
      */
     public boolean hasWinningLine() {
         return hasWinningHorizontal() || hasWinningVertical() || hasWinningCross();
     }
 
 
+    /**
+     * Helper to check all rows for a win.
+     */
     private boolean hasWinningHorizontal() {
         for (int row = 0; row < BOARD_SIZE; row++) {
             Piece[] line = new Piece[BOARD_SIZE];
             boolean complete = true;
             
+            // Get all pieces in this row
             for (int col = 0; col < BOARD_SIZE; col++) {
                 line[col] = fields[row * BOARD_SIZE + col];
                 if (line[col] == null) {
@@ -83,17 +96,23 @@ public class Board {
                 }
             }
             
+            // Check if they form a line
             if (complete && lineChecker(line[0], line[1], line[2], line[3])) {
                 return true;
             }
         }
         return false;
     }
+    
+    /**
+     * Helper to check all columns for a win.
+     */
     private boolean hasWinningVertical() {
         for (int col = 0; col < BOARD_SIZE; col++) {
             Piece[] line = new Piece[BOARD_SIZE];
             boolean complete = true;
             
+            // Get all pieces in this column
             for (int row = 0; row < BOARD_SIZE; row++) {
                 line[row] = fields[row * BOARD_SIZE + col];
                 if (line[row] == null) {
@@ -102,6 +121,7 @@ public class Board {
                 }
             }
             
+            // Check if they form a line
             if (complete && lineChecker(line[0], line[1], line[2], line[3])) {
                 return true;
             }
@@ -109,8 +129,11 @@ public class Board {
         return false;
     }
 
+    /**
+     * Helper to check the two diagonals for a win.
+     */
     private boolean hasWinningCross() {
-        // (0,0), (1,1), (2,2), (3,3)
+        // First diagonal (top-left to bottom-right)
         Piece[] diag1 = new Piece[BOARD_SIZE];
         boolean complete1 = true;
         for (int i = 0; i < BOARD_SIZE; i++) {
@@ -124,7 +147,7 @@ public class Board {
             return true;
         }
         
-        // (0,3), (1,2), (2,1), (3,0)
+        // Second diagonal (top-right to bottom-left)
         Piece[] diag2 = new Piece[BOARD_SIZE];
         boolean complete2 = true;
         for (int i = 0; i < BOARD_SIZE; i++) {
@@ -142,8 +165,9 @@ public class Board {
     }
 
     /**
-     * Checks if the board is full or not.
-     * @return true if board is full with pieces, otherwise false
+     * Checks if the board is completely full (no more empty spots).
+     *
+     * @return true if full, false otherwise
      */
     public boolean isFull(){
         for (Piece piece : fields) {
@@ -155,14 +179,16 @@ public class Board {
     }
 
     /**
-     * Copies the board with another pointer.
-     * @return the copy of the board
+     * Creates a copy of this board.
+     * Useful for AI to test moves without changing the real game.
+     *
+     * @return A new Board object that looks exactly like this one
      */
     public Board copy(){
         Board copyOfBoard = new Board();
-        // Deep copy of fields array
+        // Copy the array contents
         for(int i = 0; i < fields.length; i++) {
-             copyOfBoard.fields[i] = this.fields[i]; // Pieces are immutable so shallow copy of reference is fine
+             copyOfBoard.fields[i] = this.fields[i]; // Just copying reference is enough since Pieces don't change
         }
         return copyOfBoard;
     }
@@ -173,9 +199,11 @@ public class Board {
     }
 
     /**
-     * Generates a string representation of the board with available pieces shown below.
-     * @param availablePieces list of pieces still available, or null to hide
-     * @return formatted board string
+     * Returns a string drawing of the board.
+     * Can optionally show available pieces below the board.
+     *
+     * @param availablePieces List of pieces left to play (or null to hide)
+     * @return The board as a string
      */
     public String toString(java.util.List<Piece> availablePieces) {
         StringBuilder sb = new StringBuilder();
@@ -251,7 +279,7 @@ public class Board {
     }
 
     /**
-     * Helper to find a piece by ID in a list.
+     * Helper to find a piece in a list using its ID.
      */
     private Piece findPieceById(java.util.List<Piece> pieces, int id) {
         for (Piece p : pieces) {

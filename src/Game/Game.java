@@ -15,7 +15,11 @@ public class Game {
     private final int PIECE_NUMBER = 16;
 
     /**
-     * Creates an instance of Quarto game with 2 players.
+     * Sets up a new game with 2 players.
+     * Creates the board and all 16 pieces.
+     *
+     * @param player1 The first player
+     * @param player2 The second player
      */
     public Game(AbstractPlayer player1, AbstractPlayer player2){
         board = new Board();
@@ -36,19 +40,13 @@ public class Game {
 
 
     /**
-     * Main function to be called when starting a particular game.
-     */
-    public void start(){
-        boolean gameOver = false;
-        while(!gameOver){
-            //Game logic in chronological order
-        }
-    }
-
-    /**
-     * Does the move on the board if the move is valid.
-     * @param move The move to be played
-     * @return true if move was valid and applied, false otherwise
+     * Tries to apply a move to the game.
+     * A move has two steps:
+     * 1. Place the piece you were given.
+     * 2. Pick a piece for the next player.
+     *
+     * @param move The move object with the placement and next piece.
+     * @return true if the move was valid and worked, false if it failed.
      */
     public boolean doMove(Move move){
         if (move == null) return false;
@@ -107,8 +105,9 @@ public class Game {
 
 
     /**
-     * Before ending a turn, player has to pick the piece for the opponent to play.
-     * @param piece the piece that is intended to be played next.
+     * Sets the piece that the next player has to play.
+     *
+     * @param piece The chosen piece
      */
     public void pickCurrentPiece(Piece piece){
         if(availablePieces.contains(piece)){
@@ -116,9 +115,12 @@ public class Game {
             availablePieces.remove(piece);
         }else System.out.println("Piece is not valid, it has been used.");
     }
+
     /**
-     * Gives all valid moves that can be played in the current state of the game.
-     * @return List of all moves that can be played
+     * Returns a list of all valid moves right now.
+     * A valid move is any empty spot on the board.
+     *
+     * @return List of valid moves
      */
     public List<Move> getValidMoves(){
         List<Move> validMoves = new ArrayList<>();
@@ -129,9 +131,10 @@ public class Game {
     }
 
     /**
-     * Checks if a specific move is valid.
-     * @param move the move to check
-     * @return true if the move is allowed
+     * Checks if a move is valid (spot is empty and inside the board).
+     *
+     * @param move The move to check
+     * @return true if valid
      */
     public boolean isValidMove(Move move) {
         if (move == null) return false;
@@ -140,29 +143,35 @@ public class Game {
     }
 
     /**
-     * Checks if the game is over (win or draw).
+     * Checks if the game has ended (someone won or board is full).
+     *
      * @return true if game is over
      */
     public boolean isGameOver() {
         return board.hasWinningLine() || board.isFull();
     }
 
+    /**
+     * Gets the current game board.
+     */
     public Board getBoard(){
         return board;
     }
 
     /**
-     * Gets the current piece that must be placed.
-     * @return the piece to be placed, or null if no piece is set
+     * Returns the piece that must be placed on this turn.
+     *
+     * @return The piece to place
      */
     public Piece getCurrentPiece() {
         return currentPieceToPlace;
     }
 
     /**
-     * Gets a piece by its ID from the available pieces.
-     * @param pieceId the ID of the piece to find
-     * @return the Piece, or null if not found/already used
+     * Finds a piece in the available list by its ID.
+     *
+     * @param pieceId ID of the piece
+     * @return The piece object, or null if not found
      */
     public Piece getPieceById(int pieceId) {
         for (Piece p : availablePieces) {
@@ -174,8 +183,9 @@ public class Game {
     }
 
     /**
-     * Gets the name of the opponent (the player who is NOT currently taking their turn).
-     * @return the opponent's name
+     * Gets the name of the other player.
+     *
+     * @return Opponent's name
      */
     public String getOpponentName() {
         int opponentIndex = (currentTurn + 1) % 2;
@@ -183,30 +193,43 @@ public class Game {
     }
 
     /**
-     * Gets the name of the current player (who is taking their turn).
-     * @return the current player's name
+     * Gets the name of the player whose turn it is.
+     *
+     * @return Current player's name
      */
     public String getCurrentPlayerName() {
         return playerList[currentTurn].getName();
     }
 
     /**
-     * Gets the list of pieces still available to be picked.
-     * @return list of available pieces
+     * Gets the list of pieces that haven't been used yet.
+     *
+     * @return List of available pieces
      */
     public List<Piece> getAvailablePieces() {
         return availablePieces;
     }
 
+    /**
+     * Sets who won and why.
+     */
     public void setResult(String reason, String winner) {
         this.endReason = reason;
         this.winnerName = winner;
     }
 
+    /**
+     * Why the game ended (e.g., "VICTORY", "DRAW").
+     * @return The reason the game ended
+     */
     public String getEndReason() {
         return endReason;
     }
 
+    /**
+     * Who won the game.
+     * @return The winner's name
+     */
     public String getWinnerName() {
         return winnerName;
     }

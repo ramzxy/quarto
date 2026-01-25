@@ -3,7 +3,7 @@ package Server;
 import java.util.Scanner;
 
 /**
- * Main entry point for the Server application.
+ * The main class to start the server.
  */
 public class ServerApplication {
     private static final int DEFAULT_PORT = 4444;
