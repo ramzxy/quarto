@@ -1,4 +1,4 @@
-package GameTest;
+package game;
 
 import Game.Game;
 import Game.Move;
@@ -36,15 +36,5 @@ public class GameTest {
     public void testDoMove(){
         Assertions.assertTrue(game.doMove(validMoves.get(1)));
         Assertions.assertTrue(game.doMove(validMoves.get(5)));
-    }
-
-    @Test
-    public void testNotifyMove(){
-
-    }
-
-    @Test
-    public void testNotifyGameOver(){
-
     }
 }
