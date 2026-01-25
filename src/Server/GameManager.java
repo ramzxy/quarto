@@ -1,6 +1,6 @@
 package Server;
 
-import Game.*;
+import Game.Game;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;

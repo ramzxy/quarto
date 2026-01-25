@@ -1,6 +1,8 @@
 package Server;
 
-import Game.*;
+import Game.Game;
+import Game.Move;
+import Game.Piece;
 import Protocol.PROTOCOL;
 
 import java.io.IOException;

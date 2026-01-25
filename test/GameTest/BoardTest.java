@@ -1,4 +1,4 @@
-package game;
+package GameTest;
 
 import Game.Board;
 import Game.Piece;

@@ -4,8 +4,7 @@ import Client.GameClient;
 import Game.Game;
 import Game.Move;
 import Game.Piece;
-import Game.Piece;
-import java.io.IOException;
+
 import java.util.List;
 import java.util.Scanner;
 
