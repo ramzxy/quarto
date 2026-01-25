@@ -1,6 +1,6 @@
 package Server;
 
-import Game.Game;
+import Game.*;
 
 /**
  * Represents an active game session and manages communication between its players.

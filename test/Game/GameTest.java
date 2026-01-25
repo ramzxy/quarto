@@ -1,4 +1,4 @@
-package GameTest;
+package game;
 
 import Game.Game;
 import Game.Move;
