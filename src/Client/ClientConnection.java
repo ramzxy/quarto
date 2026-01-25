@@ -38,7 +38,6 @@ public class ClientConnection extends SocketConnection {
         if (message == null || message.isEmpty()) {
             return;
         }
-        System.out.println("[Client] RX: " + message);
         
         String[] parts = message.split(PROTOCOL.SEPARATOR);
         
@@ -103,7 +102,7 @@ public class ClientConnection extends SocketConnection {
         sendMessage(PROTOCOL.HELLO + PROTOCOL.SEPARATOR + clientDescription);
     }
 
-    public void         sendLogin(String username) {
+    public void sendLogin(String username) {
         sendMessage(PROTOCOL.LOGIN + PROTOCOL.SEPARATOR + username);
     }
 

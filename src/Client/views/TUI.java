@@ -36,10 +36,10 @@ public class TUI implements ClientView {
      * @return the entered username (non-empty)
      */
     public String promptUsername() {
-        System.out.print("\nEnter your username: ");
+        System.out.print("\nEnter your username:\n> ");
         String username = readLine();
         while (username.isEmpty()) {
-            System.out.print("Username cannot be empty. Enter your username: ");
+            System.out.print("Username cannot be empty. Enter your username:\n> ");
             username = readLine();
         }
         return username;
@@ -61,12 +61,27 @@ public class TUI implements ClientView {
         System.out.println(game.getBoard().toString(null));
         
         System.out.println("──────────────────────────────────────");
+        
+        String currentPlayer = game.getCurrentPlayerName();
+        String myName = client.getPlayer().getName();
+        boolean isMyTurn = currentPlayer.equals(myName);
+        
         Piece currentPiece = game.getCurrentPiece();
-        if (currentPiece != null) {
-            System.out.println(ConsoleUtils.BRIGHT_GREEN + "Your piece to place: " + currentPiece.toString() + 
-                " (ID: " + currentPiece.getId() + ")" + ConsoleUtils.RESET);
+        
+        if (isMyTurn) {
+            if (currentPiece != null) {
+                System.out.println(ConsoleUtils.BRIGHT_GREEN + "YOUR TURN to PLACE a piece!" + ConsoleUtils.RESET);
+                System.out.println("Piece to place: " + currentPiece.toString() + " (ID: " + currentPiece.getId() + ")");
+            } else {
+                System.out.println(ConsoleUtils.BRIGHT_GREEN + "YOUR TURN to PICK a piece for opponent!" + ConsoleUtils.RESET);
+            }
         } else {
-            System.out.println(ConsoleUtils.BRIGHT_YELLOW + "Waiting for opponent to pick a piece for you..." + ConsoleUtils.RESET);
+             System.out.println(ConsoleUtils.BRIGHT_YELLOW + "Waiting for opponent (" + currentPlayer + ") to play..." + ConsoleUtils.RESET);
+             if (currentPiece != null) {
+                 System.out.println("They must place: " + currentPiece.toString());
+             } else {
+                 System.out.println("They are picking a piece for you.");
+             }
         }
         System.out.println("──────────────────────────────────────");
         System.out.println("Type 'help' for commands, 'hint' for valid moves");
@@ -187,6 +202,9 @@ public class TUI implements ClientView {
             }
             System.out.println();
         }
+        
+        System.out.println(ConsoleUtils.BRIGHT_YELLOW + "TIP: If placing a piece makes a line of 4 similar pieces (row, col, diagonal),");
+        System.out.println("     use 'move <pos> quarto' to CLAIM victory!" + ConsoleUtils.RESET);
     }
 
     private void printHelp(GameClient client) {
@@ -201,6 +219,7 @@ public class TUI implements ClientView {
         System.out.println("╠════════════════════════════════════════╣");
         System.out.println("║  IN-GAME COMMANDS:                     ║");
         System.out.println("║  move <pos> <pieceId> - Make a move    ║");
+        System.out.println("║  move <pos> quarto    - Claim Victory  ║");
         System.out.println("║  move <pieceId>       - First move     ║");
         System.out.println("║  hint                 - Show valid     ║");
         System.out.println("║                         positions      ║");
@@ -221,6 +240,7 @@ public class TUI implements ClientView {
         if (parts.length < 2) {
             System.out.println("Usage:");
             System.out.println("  move <position> <pieceId>  - Place piece and give next");
+            System.out.println("  move <position> quarto     - Place piece and CLAIM QUARTO (Win)");
             System.out.println("  move <pieceId>             - First move (give piece only)");
             System.out.println("\nType 'hint' to see valid positions and available pieces.");
             return;
@@ -228,17 +248,21 @@ public class TUI implements ClientView {
         
         try {
             if (parts.length == 2) {
-                // First move: only giving a piece
                 int pieceId = Integer.parseInt(parts[1]);
                 client.makeFirstMove(pieceId);
             } else {
-                // Normal move
                 int pos = Integer.parseInt(parts[1]);
-                int nextPieceId = Integer.parseInt(parts[2]);
-                client.makeMove(pos, nextPieceId);
+                String arg2 = parts[2].toLowerCase();
+                
+                if (arg2.equals("quarto") || arg2.equals("q")) {
+                    client.makeMove(pos, 16); 
+                } else {
+                    int nextPieceId = Integer.parseInt(arg2);
+                    client.makeMove(pos, nextPieceId);
+                }
             }
         } catch (NumberFormatException e) {
-            System.out.println("Invalid input. Please enter numbers only.");
+            System.out.println("Invalid input. Please enter numbers for positions/pieces.");
             System.out.println("Type 'hint' to see valid positions and available pieces.");
         }
     }
@@ -255,7 +279,7 @@ public class TUI implements ClientView {
 
     @Override
     public void showLoggedIn(String playerName) {
-        System.out.println("\n" + ConsoleUtils.BRIGHT_GREEN + "✓ Welcome, " + playerName + "!" + ConsoleUtils.RESET);
+        System.out.println("\n" + ConsoleUtils.BRIGHT_GREEN + "- Welcome, " + playerName + "!" + ConsoleUtils.RESET);
         System.out.println("Type 'queue' to find a match, or 'help' for commands.");
     }
 
@@ -273,7 +297,7 @@ public class TUI implements ClientView {
     public void showUserList(String[] users) {
         System.out.println("\nOnline players (" + users.length + "):");
         for (String user : users) {
-            System.out.println("  • " + user);
+            System.out.println("  - " + user);
         }
     }
 
