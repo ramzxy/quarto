@@ -1,7 +1,7 @@
 package Client;
 
 import Client.views.AITUI;
-import ai.GeniusStrategy;
+import ai.ChokerJokerStrategy;
 import ai.MinimaxStrategy;
 import ai.SmartStrategy;
 import ai.Strategy;
@@ -42,7 +42,7 @@ public class AIClientApplication {
             System.out.println("\nSelect Difficulty:");
             System.out.println("1. Easy (Smart)");
             System.out.println("2. Medium (Minimax)");
-            System.out.println("3. Hard (Genius)");
+            System.out.println("3. Hard (Choker Joker)");
             System.out.print("Choice (1-3): ");
             
             int choice = 0;
@@ -59,7 +59,7 @@ public class AIClientApplication {
                      strategy = new MinimaxStrategy(4, time);
                      break;
                 case 3:
-                    strategy = new GeniusStrategy();
+                    strategy = new ChokerJokerStrategy();
                     break;
                 case 1:
                 default:
