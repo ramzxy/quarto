@@ -52,6 +52,12 @@ To generate Javadoc:
 
 The documentation will be available in `docs/javadoc`.
 
+
+## Runnable Classes
+
+- ServerApplication.java
+- ClientApplication.java
+
 ## Running the Applications
 
 ### Server

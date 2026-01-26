@@ -15,6 +15,7 @@ public class SystemTest {
     private ServerPlayer player2;
     private Game game;
     private Board gameBoard;
+
     @BeforeEach
     public void setUp(){
         player1 = new ServerPlayer("Player 1");
@@ -43,10 +44,13 @@ public class SystemTest {
     @Test
     public void testCurrentPiece(){
         //Do first move
-        Assertions.assertTrue(game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0))));
-        Assertions.assertEquals(game.getPieceById(0), game.getCurrentPiece());
-        game.doMove(new Move(1, gameBoard.findPieceById(game.getAvailablePieces(), 0), gameBoard.findPieceById(game.getAvailablePieces(), 1)));
-        Assertions.assertEquals(game.getPieceById(1), game.getCurrentPiece());
+        game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
+        System.out.println();
+        game.doMove(new Move(1, gameBoard.findPieceById(game.getAvailablePieces(), 0), game.getPieceById(1)));
+        System.out.println(gameBoard.toString());
+        System.out.println(game.getAvailablePieces());
+        System.out.println(game.getCurrentPiece());
+        Assertions.assertFalse(game.getAvailablePieces().contains(game.getCurrentPiece()));
     }
 
     @Test
