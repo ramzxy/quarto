@@ -38,10 +38,11 @@ public class ClientConnection extends SocketConnection {
      */
     @Override
     protected void handleMessage(String message) {
+        System.err.println("[RECV] " + message);
         if (message == null || message.isEmpty()) {
             return;
         }
-        
+
         String[] parts = message.split(PROTOCOL.SEPARATOR);
         
         if (parts.length < 1) {

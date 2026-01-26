@@ -161,11 +161,22 @@ public class GameClient {
         if (!localGame.getCurrentPlayerName().equals(player.getName())) {
             return;
         }
+        System.err.println("[GameClient] Computing move...");
         Move move = player.determineMove(localGame);
+
+        System.err.println("[GameClient] Move computed: " + (move != null ?
+            "boardIndex=" + move.getBoardIndex() +
+            ", piece=" + (move.getPiece() != null ? move.getPiece().getId() : "null") +
+            ", nextPiece=" + (move.getNextPiece() != null ? move.getNextPiece().getId() : "null") : "null"));
 
         if (move != null) {
             if (move.getBoardIndex() == -1) {
                 // First move (picking piece only)
+                if (move.getNextPiece() == null) {
+                    System.err.println("[GameClient] ERROR: First move has null nextPiece!");
+                    return;
+                }
+                System.err.println("[GameClient] Sending first move: pieceId=" + move.getNextPiece().getId());
                 makeFirstMove(move.getNextPiece().getId());
             } else {
                 int nextPieceId = move.getNextPiece() != null ? move.getNextPiece().getId() : -1;
@@ -173,9 +184,12 @@ public class GameClient {
                 if (move.getNextPiece() == null) {
                     System.err.println("Warning: Move had null nextPiece, defaulting to -1");
                 }
-                
+
+                System.err.println("[GameClient] Sending move: position=" + move.getBoardIndex() + ", nextPieceId=" + nextPieceId);
                 makeMove(move.getBoardIndex(), nextPieceId);
             }
+        } else {
+            System.err.println("[GameClient] ERROR: determineMove returned null!");
         }
     }
 

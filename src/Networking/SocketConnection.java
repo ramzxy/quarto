@@ -82,11 +82,13 @@ public abstract class SocketConnection {
      */
     public boolean sendMessage(String message) {
         try {
+            System.err.println("[SEND] " + message);
             out.write(message);
             out.newLine();
             out.flush();
             return true;
         } catch (IOException e) {
+            System.err.println("[SEND ERROR] " + e.getMessage());
             // an error occurred while writing, close the connection and return false
             close();
             return false;
