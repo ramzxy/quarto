@@ -43,7 +43,6 @@ public class ServerConnection extends SocketConnection {
         String[] parts = message.split(PROTOCOL.SEPARATOR);
         
         if (parts.length < 1) {
-            System.out.println("Parse error: empty command");
             return;
         }
         
@@ -94,7 +93,6 @@ public class ServerConnection extends SocketConnection {
      */
     @Override
     protected void handleDisconnect() {
-        System.out.println("Client disconnecting");
         clientHandler.receiveDisconnect();
     }
 

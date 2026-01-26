@@ -82,7 +82,6 @@ public abstract class SocketConnection {
      */
     public boolean sendMessage(String message) {
         try {
-            System.err.println("[SEND] " + message);
             out.write(message);
             out.newLine();
             out.flush();

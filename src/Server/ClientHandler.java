@@ -163,7 +163,6 @@ public class ClientHandler {
      * @param position Board position to place current piece
      * @param nextPieceId The piece to give to opponent
      */
-    //TODO: CLEAN UP THE METHOD
     public void receiveMove(int position, int nextPieceId) {
         Server.log("ClientHandler", playerName + " sending Move: pos=" + position + ", next=" + nextPieceId);
         if (state != ClientState.IN_GAME || gameSession == null) {

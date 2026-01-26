@@ -37,13 +37,14 @@ public class AITUI implements ClientView {
         }
         System.out.println("AI Client initialized.");
         System.out.print("Enter username for AI: ");
+        ConsoleUtils.printInputPrompt();
         if (scanner.hasNextLine()) return scanner.nextLine().trim();
         return "AI_Player";
     }
 
     @Override
     public void displayGame(Game game) {
-        //System.out.println(game.getBoard().toString(null));
+        // AI doesn't need visual display
     }
 
 
@@ -79,9 +80,6 @@ public class AITUI implements ClientView {
     @Override
     public void showError(String error) {
         System.err.println("Error: " + error);
-        if (error.contains("already in use")) {
-            // Handle retry if possible?
-        }
     }
 
     @Override

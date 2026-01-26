@@ -113,7 +113,7 @@ public class Game {
         if(availablePieces.contains(piece)){
             currentPieceToPlace = piece;
             availablePieces.remove(piece);
-        }else System.out.println("Piece is not valid, it has been used.");
+        }
     }
 
     /**

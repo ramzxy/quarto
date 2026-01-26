@@ -38,7 +38,6 @@ public class ClientConnection extends SocketConnection {
      */
     @Override
     protected void handleMessage(String message) {
-        System.err.println("[RECV] " + message);
         if (message == null || message.isEmpty()) {
             return;
         }
@@ -46,7 +45,6 @@ public class ClientConnection extends SocketConnection {
         String[] parts = message.split(PROTOCOL.SEPARATOR);
         
         if (parts.length < 1) {
-            System.out.println("Parse error: empty command");
             return;
         }
 
@@ -90,7 +88,7 @@ public class ClientConnection extends SocketConnection {
                 gameClient.receiveError(error);
                 break;
             default:
-                System.out.println("Unknown server message: " + command);
+                break;
         }
     }
 

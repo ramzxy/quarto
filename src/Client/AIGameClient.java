@@ -75,8 +75,6 @@ public class AIGameClient extends GameClient {
         }
         stats.put(opponent, record);
         saveStats(stats);
-        
-        System.out.println("[STATS] vs " + opponent + ": " + record[0] + "W-" + record[1] + "L-" + record[2] + "D");
     }
 
     private Map<String, int[]> loadStats() {
@@ -97,7 +95,7 @@ public class AIGameClient extends GameClient {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error loading stats: " + e.getMessage());
+            // Ignore - stats file may not exist yet
         }
         return stats;
     }
@@ -109,7 +107,7 @@ public class AIGameClient extends GameClient {
                 writer.println(entry.getKey() + "," + r[0] + "," + r[1] + "," + r[2]);
             }
         } catch (IOException e) {
-            System.err.println("Error saving stats: " + e.getMessage());
+            // Ignore - non-critical
         }
     }
 }
