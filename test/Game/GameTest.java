@@ -26,12 +26,18 @@ public class GameTest {
     }
 
 
+    /**
+     * Tests validMoves.
+     */
     @Test
     public void testGetValidMoves(){
         game.doMove(new Move(0, game.getPieceById(10)));
         Assertions.assertFalse(validMoves.contains(new Move(0, game.getPieceById(10))));
     }
 
+    /**
+     * Testing that move doesn't return false.
+     */
     @Test
     public void testDoMove(){
         Assertions.assertTrue(game.doMove(validMoves.get(1)));

@@ -66,7 +66,7 @@ public class Game {
 
         // Standard move: Validate Placement using helper
         if (!isValidMove(move)) return false;
-        
+
         // Validate Piece placed (must match currentPieceToPlace)
         if (currentPieceToPlace == null) return false; 
         

@@ -37,7 +37,9 @@ public class BoardTest {
     }
 
 
-
+    /**
+     * Tests the setter and getter of Piece.
+     */
     @Test
     public void testSetGetPiece(){
         Assertions.assertNull(board.getPiece(0)); //Should not return anything
@@ -47,6 +49,9 @@ public class BoardTest {
         Assertions.assertEquals(board.getPiece(0), pieces[3]);
     }
 
+    /**
+     * Tests the isFull() function.
+     */
     @Test
     public void testIsFull(){
         Assertions.assertFalse(board.isFull());
@@ -56,6 +61,9 @@ public class BoardTest {
         Assertions.assertTrue(board.isFull());
     }
 
+    /**
+     * Tests winning horizontal line.
+     */
     @Test
     public void testHorizontalLine(){
         board.setPiece(0, pieces[0]);
@@ -66,6 +74,9 @@ public class BoardTest {
         Assertions.assertTrue(board.hasWinningLine());
     }
 
+    /**
+     * Tests winning vertical line.
+     */
     @Test
     public void testVerticalLine(){
         board.setPiece(0, pieces[0]);
@@ -76,6 +87,9 @@ public class BoardTest {
         Assertions.assertTrue(board.hasWinningLine());
     }
 
+    /**
+     * Tests winning diagonal line.
+     */
     @Test
     public void testDiagonalLine(){
         board.setPiece(0, pieces[0]);
