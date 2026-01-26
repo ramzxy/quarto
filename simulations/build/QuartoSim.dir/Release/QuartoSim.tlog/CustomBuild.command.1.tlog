@@ -1,0 +1,10 @@
+^C:\USERS\ILIA\IDEAPROJECTS\PROJECT-109\SIMULATIONS\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/ilia/IdeaProjects/project-109/simulations -BC:/Users/ilia/IdeaProjects/project-109/simulations/build --check-stamp-file C:/Users/ilia/IdeaProjects/project-109/simulations/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,3 @@
+C:/Users/ilia/IdeaProjects/project-109/simulations/build/CMakeFiles/QuartoSim.dir
+C:/Users/ilia/IdeaProjects/project-109/simulations/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/ilia/IdeaProjects/project-109/simulations/build/CMakeFiles/ZERO_CHECK.dir

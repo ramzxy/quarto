@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\sim\GameRunner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\Bitboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\TranspositionTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\Symmetry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\RandomAgent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\GreedyAgent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\MinimaxAgent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\ChokerJoker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ilia\IdeaProjects\project-109\simulations\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{A2DC158F-3E9E-324E-861E-3DEA72456ECD}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

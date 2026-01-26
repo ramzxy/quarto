@@ -1,0 +1,9 @@
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\main.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\main.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\sim\GameRunner.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\GameRunner.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\Bitboard.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\Bitboard.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\TranspositionTable.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\TranspositionTable.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\engine\Symmetry.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\Symmetry.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\RandomAgent.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\RandomAgent.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\GreedyAgent.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\GreedyAgent.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\MinimaxAgent.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\MinimaxAgent.obj
+C:\Users\ilia\IdeaProjects\project-109\simulations\src\strategies\ChokerJoker.cpp;C:\Users\ilia\IdeaProjects\project-109\simulations\build\QuartoSim.dir\Release\ChokerJoker.obj
