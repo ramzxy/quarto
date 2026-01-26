@@ -1,10 +1,8 @@
 package game;
 
-import Client.ComputerPlayer;
 import Game.Game;
 import Game.Board;
 import Game.Move;
-import Server.Server;
 import Server.ServerPlayer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,14 +28,13 @@ public class SystemTest {
         //By testing doMove, getValidMoves is also tested
         Assertions.assertEquals(16, game.getValidMoves().size());
         Assertions.assertNotNull(gameBoard.findPieceById(game.getAvailablePieces(), 0));
-        Assertions.assertTrue(game.doMove(new Move(-1, gameBoard.findPieceById(game.getAvailablePieces(), 0), gameBoard.findPieceById(game.getAvailablePieces(), 0))));
+        Assertions.assertTrue(game.doMove(new Move(-1, gameBoard.findPieceById(game.getAvailablePieces(), 0), gameBoard.findPieceById(game.getAvailablePieces(), 1))));
         //Valid First Move
-        Assertions.assertTrue(game.doMove(new Move(0, gameBoard.findPieceById(game.getAvailablePieces(), 0), gameBoard.findPieceById(game.getAvailablePieces(), 1))));
+        Assertions.assertTrue(game.doMove(new Move(0, gameBoard.findPieceById(game.getAvailablePieces(), 1), gameBoard.findPieceById(game.getAvailablePieces(), 2))));
         //Valid move
-        Assertions.assertFalse(game.doMove(new Move(0, gameBoard.findPieceById(game.getAvailablePieces(), 1), gameBoard.findPieceById(game.getAvailablePieces(), 2))));
-        //Occupied board invalid move
-        Assertions.assertFalse(game.doMove(new Move(0, gameBoard.findPieceById(game.getAvailablePieces(), 0), gameBoard.findPieceById(game.getAvailablePieces(), 2))));
-        //Used piece invalid move
+        Assertions.assertFalse(game.doMove(new Move(0, gameBoard.findPieceById(game.getAvailablePieces(), 2), gameBoard.findPieceById(game.getAvailablePieces(), 3))));
+        //Invalid move
+        System.out.println(gameBoard.toString());
         Assertions.assertEquals(15, game.getValidMoves().size());
     }
 
@@ -63,6 +60,37 @@ public class SystemTest {
         System.out.println(gameBoard.toString());
         Assertions.assertTrue(gameBoard.isFull());
     }
+
+    @Test
+    public void testWin(){
+        game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
+        for(int i = 4; i < 8; i++){
+            game.doMove(new Move(i, game.getPieceById(i), game.getPieceById(i+1)));
+        }
+        System.out.println(gameBoard.toString());
+        Assertions.assertTrue(gameBoard.hasWinningLine());
+        Assertions.assertTrue(game.isGameOver());
+    }
+
+    @Test
+    public void testDraw(){
+        game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
+        for(int i = 0; i < 16; i++){
+            game.doMove(new Move(i, game.getPieceById(i), game.getPieceById(i+1)));
+        }
+        System.out.println(gameBoard.toString());
+        Assertions.assertFalse(gameBoard.hasWinningLine());
+        Assertions.assertTrue(game.isGameOver());
+    }
+
+    @Test
+    public void testTurn(){
+        String i = game.getCurrentPlayerName();
+        game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
+        String j = game.getCurrentPlayerName();
+        Assertions.assertNotEquals(i, j);
+    }
+
 
 
 
