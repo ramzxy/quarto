@@ -23,7 +23,7 @@ import Protocol.PROTOCOL;
  * 
  * Optimized for JIT compilation with zero-allocation primitives.
  */
-public class GeniusStrategy implements Strategy {
+public class ChokerJokerStrategy implements Strategy {
     
     // ==================== GLOBAL BIT CONSTANTS (Server Protocol) ====================
     // Bit 0 (1): COLOR (0=Light, 1=Dark)
@@ -1106,6 +1106,6 @@ public class GeniusStrategy implements Strategy {
     
     @Override
     public String getName() {
-        return "Genius (Constraint-Solver Hybrid)";
+        return "O2Lock (Constraint-Solver Hybrid)";
     }
 }
