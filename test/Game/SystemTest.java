@@ -24,7 +24,9 @@ public class SystemTest {
         gameBoard = game.getBoard();
     }
 
-
+    /**
+     * Testing moves and invalid moves.
+     */
     @Test
     public void testMove(){
         //By testing doMove, getValidMoves is also tested
@@ -40,6 +42,9 @@ public class SystemTest {
         Assertions.assertEquals(15, game.getValidMoves().size());
     }
 
+    /**
+     * Testing that current piece effects the available pieces.
+     */
     @Test
     public void testCurrentPiece(){
         //Do first move
@@ -52,6 +57,9 @@ public class SystemTest {
         Assertions.assertFalse(game.getAvailablePieces().contains(game.getCurrentPiece()));
     }
 
+    /**
+     * Testing a full board to return isFull true.
+     */
     @Test
     public void testFullBoard(){
         game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
@@ -63,6 +71,9 @@ public class SystemTest {
         Assertions.assertTrue(gameBoard.isFull());
     }
 
+    /**
+     * Testing whether the game acknowledges a win.
+     */
     @Test
     public void testWin(){
         game.doMove(new Move(-1, game.getPieceById(0), game.getPieceById(0)));
@@ -74,6 +85,9 @@ public class SystemTest {
         Assertions.assertTrue(game.isGameOver());
     }
 
+    /**
+     * Testing a draw, board is full with no win.
+     */
     @Test
     public void testDraw(){
         /*  Row 0: LSQF  DTCH  DSQH  LTCF
@@ -103,6 +117,9 @@ public class SystemTest {
         Assertions.assertTrue(game.isGameOver());
     }
 
+    /**
+     * Testing the the change of turns.
+     */
     @Test
     public void testTurn(){
         String i = game.getCurrentPlayerName();
@@ -111,6 +128,9 @@ public class SystemTest {
         Assertions.assertNotEquals(i, j);
     }
 
+    /**
+     * Testing the whole game system of making random legal moves.
+     */
     @Test
     public void testRandomLegalMoves(){
         Random r = new Random();
@@ -126,6 +146,9 @@ public class SystemTest {
 
     }
 
+    /**
+     * Testing the whole game system of making random legal and illegal moves.
+     */
     @Test
     public void testRandomGame(){
         //Everything here is random with many illegal moves
