@@ -84,11 +84,11 @@ ComputerPlayer (extends AbstractPlayer)
     An AI-controlled player. When determineMove() is called,
     it delegates to a Strategy to compute the best move.
 
-ClientView (interface)
+ClientView (interface) (in Client.views)
     Interface for displaying the game and getting user input.
     Includes methods for login, errors, game events, etc.
 
-TUI (implements ClientView)
+TUI (implements ClientView) (in Client.views)
     Text-based user interface. Displays the board in the console
     and reads user input from stdin.
 
@@ -98,11 +98,13 @@ Strategy (interface)
     Interface for AI move computation. Takes the current game state
     and returns the best move according to the strategy.
 
-RandomStrategy (implements Strategy)
-    Simple AI that picks a random valid move. Useful for testing.
+ChokerJokerStrategy (implements Strategy)
+    Advanced AI implementing a "Constraint-Solver" Hybrid Engine. Uses
+    Strangler (heuristic) and God Engine (perfect play) phases, with
+    bitboard representation, symmetries, and Zobrist hashing.
 
-SmartStrategy (implements Strategy)
-    Advanced AI using minimax algorithm with alpha-beta pruning.
+MinimaxStrategy (implements Strategy)
+    AI using minimax algorithm with alpha-beta pruning.
     Evaluates positions and looks ahead multiple moves.
 
 ================================ DESIGN PATTERN ================================

@@ -6,9 +6,9 @@
 sequenceDiagram
     actor User as User
     participant App as ClientApplication
+    participant View as TUI
     participant GC as GameClient
     participant CC as ClientConnection
-    participant View as TUI
     participant SC as ServerConnection
     participant CH as ClientHandler
     participant S as Server
@@ -16,9 +16,18 @@ sequenceDiagram
 
     User->>App: Start application
     App->>View: new TUI()
-    App->>GC: new GameClient("localhost", 5000, "Alice", view)
+    
+    rect rgb(240, 240, 255)
+        Note over App, View: Connection Setup (Interactive)
+        App->>View: readLine() (host)
+        User-->>View: enters host
+        App->>View: readLine() (port)
+        User-->>View: enters port
+    end
+
+    App->>GC: new GameClient(host, port, view)
     activate GC
-    GC->>CC: new ClientConnection("localhost", 5000)
+    GC->>CC: new ClientConnection(host, port)
     activate CC
     CC->>S: TCP connect
     activate S
@@ -31,42 +40,53 @@ sequenceDiagram
     deactivate S
     CC-->>GC: connection established
     deactivate CC
-
+    
     GC->>CC: setGameClient(this)
     GC->>GC: start()
     GC->>CC: start()
     Note over CC: Starts receive thread
     GC->>CC: sendHello("GameClient")
     CC->>SC: "HELLO~GameClient"
-
+    
     SC->>SC: handleMessage("HELLO~GameClient")
     SC->>CH: receiveHello("GameClient", [])
     activate CH
     CH->>SC: sendHello("Quarto Server")
     deactivate CH
     SC->>CC: "HELLO~Quarto Server"
-
+    
     CC->>CC: handleMessage("HELLO~Quarto Server")
     CC->>GC: receiveHello("Quarto Server")
-    GC->>CC: sendLogin("Alice")
-    CC->>SC: "LOGIN~Alice"
-
-    SC->>SC: handleMessage("LOGIN~Alice")
-    SC->>CH: receiveLogin("Alice")
-    activate CH
-    CH->>GM: registerUsername("Alice", this)
-    activate GM
-    GM-->>CH: true
-    deactivate GM
-    CH->>SC: sendLogin()
-    deactivate CH
-    SC->>CC: "LOGIN"
-
-    CC->>CC: handleMessage("LOGIN")
-    CC->>GC: receiveLogin()
-    GC->>View: showLoggedIn("Alice")
-
-    Note over GC: Login successful!
+    GC->>App: (start() returns)
+    
+    App->>View: run(client)
+    View->>View: showQuickHelp()
+    
+    rect rgb(240, 255, 240)
+        Note over View, GC: Login Phase
+        User->>View: "login"
+        View->>View: promptUsername()
+        User-->>View: "Alice"
+        View->>GC: login("Alice")
+        GC->>CC: sendLogin("Alice")
+        CC->>SC: "LOGIN~Alice"
+        
+        SC->>SC: handleMessage("LOGIN~Alice")
+        SC->>CH: receiveLogin("Alice")
+        activate CH
+        CH->>GM: registerUsername("Alice", this)
+        activate GM
+        GM-->>CH: true
+        deactivate GM
+        CH->>SC: sendLogin()
+        deactivate CH
+        SC->>CC: "LOGIN"
+        
+        CC->>CC: handleMessage("LOGIN")
+        CC->>GC: receiveLogin()
+        GC->>View: showLoggedIn("Alice")
+        View-->>User: "Welcome, Alice!"
+    end
     deactivate GC
 ```
 

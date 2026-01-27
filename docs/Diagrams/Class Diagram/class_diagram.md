@@ -38,7 +38,6 @@ classDiagram
             -ClientHandler[] players
             -int currentTurn
             -List~GameListener~ listeners
-            +Game()
             +Game(ClientHandler p1, ClientHandler p2)
             +start()
             +doMove(Move move)
@@ -156,11 +155,26 @@ classDiagram
             IN_QUEUE
             IN_GAME
         }
+        
+        class GameSession {
+             -Game game
+             -ClientHandler player1
+             -ClientHandler player2
+        }
+        
+        class ServerPlayer {
+             +ServerPlayer(String name)
+             +determineMove(Game game) Move
+        }
     }
 
     %% --- Client Side ---
     namespace client {
         class ClientApplication {
+            +main(args)
+        }
+        
+        class AIClientApplication {
             +main(args)
         }
 
@@ -186,7 +200,7 @@ classDiagram
             -boolean loggedIn
             -boolean inQueue
             -boolean inGame
-            +GameClient(String host, int port, String name, ClientView view)
+            +GameClient(String host, int port, ClientView view)
             +start()
             +receiveHello(String serverDesc)
             +receiveLogin()
@@ -205,6 +219,10 @@ classDiagram
             +makeFirstMove(int pieceId)
             +disconnect()
         }
+        
+        class AIGameClient {
+            +AIGameClient(String host, int port, AITUI view)
+        }
 
         class HumanPlayer {
             -ClientView view
@@ -217,10 +235,11 @@ classDiagram
             +ComputerPlayer(String name, Strategy strategy)
             +determineMove(Game game) Move
         }
-
+        
         class ClientView {
             <<interface>>
             +displayGame(Game game)
+            +promptUsername() String
             +requestMove(Game game) Move
             +showMessage(String msg)
             +showLoggedIn(String name)
@@ -233,16 +252,25 @@ classDiagram
         }
 
         class TUI {
+            +TUI()
+            +run(GameClient client)
+            +promptUsername() String
             +displayGame(Game game)
-            +requestMove(Game game) Move
-            +showMessage(String msg)
+            #formatPiece(Piece p) String
+            #printBoard(Game game)
+        }
+        
+        class AITUI {
+            +AITUI(GameClient client)
+            +promptUsername() String
             +showLoggedIn(String name)
-            +showError(String error)
-            +showDisconnected()
-            +showUserList(String[] users)
-            +showGameStarted(String p1, String p2, boolean first)
-            +showMove(String[] parts)
             +showGameOver(String reason, String winner)
+        }
+        
+        class ConsoleUtils {
+             +clearScreen()
+             +printError(String msg)
+             +printSuccess(String msg)
         }
     }
 
@@ -251,16 +279,18 @@ classDiagram
         class Strategy {
             <<interface>>
             +computeMove(Game game) Move
+            +getName() String
         }
 
-        class RandomStrategy {
+        class ChokerJokerStrategy {
             +computeMove(Game game) Move
+            +determineMove(Game game) Move
+            +initializeZobrist()
+            +checkWin(...)
         }
 
-        class SmartStrategy {
-            -int maxDepth
+        class MinimaxStrategy {
             +computeMove(Game game) Move
-            -minimax(Game game, int depth, boolean maximizing) int
         }
     }
 
@@ -288,13 +318,17 @@ classDiagram
     ServerConnection --> ClientHandler : delegates to
     GameManager o-- ClientHandler : queues
     GameManager o-- Game : manages
+    GameManager o-- GameSession : manages
+    ServerPlayer --|> AbstractPlayer
 
     %% Client Relationships
     ClientApplication --> GameClient
+    AIClientApplication --> AIGameClient
     GameClient *-- ClientConnection : uses for network
     GameClient o-- ClientView
     GameClient o-- Game : localGame
     ClientConnection --> GameClient : delegates to
+    AIGameClient --|> GameClient
 
     %% Player Inheritance
     AbstractPlayer <|-- HumanPlayer
@@ -304,10 +338,13 @@ classDiagram
 
     %% View Implementation
     ClientView <|.. TUI
+    ClientView <|.. AITUI
+    TUI ..> ConsoleUtils : uses
+    AITUI ..> ConsoleUtils : uses
 
     %% Strategy Implementations
-    Strategy <|.. RandomStrategy
-    Strategy <|.. SmartStrategy
+    Strategy <|.. ChokerJokerStrategy
+    Strategy <|.. MinimaxStrategy
 ```
 
 ---
