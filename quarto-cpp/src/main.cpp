@@ -2,6 +2,37 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
+#include <cassert>
+
+#include "game.hpp"
+
+void test_game() {
+    using namespace quarto;
+
+    BoardState b;
+    printf("Testing game.hpp...\n");
+
+    // Test initial state
+    assert(b.empty_count() == 16);
+    assert(b.available_count() == 16);
+
+    // Place piece 0 (small, square, hollow, light) at square 0
+    place_piece(b, 0, 0);
+    assert(b.empty_count() == 15);
+    assert(b.available_count() == 15);
+    assert((b.occupied & 1) == 1);
+
+    // Place pieces to make a winning line (all tall)
+    BoardState b2;
+    place_piece(b2, 0, 2);   // tall
+    place_piece(b2, 1, 3);   // tall
+    place_piece(b2, 2, 6);   // tall
+    assert(!has_winning_line(b2));
+    place_piece(b2, 3, 7);   // tall - completes row 0
+    assert(has_winning_line(b2));
+
+    printf("game.hpp tests passed!\n");
+}
 
 struct Config {
     const char* host = "localhost";
@@ -44,6 +75,8 @@ Config parse_args(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
+    test_game();
+
     Config cfg = parse_args(argc, argv);
 
     printf("Quarto AI C++ Client\n");
