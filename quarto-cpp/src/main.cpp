@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "game.hpp"
+#include "network.hpp"
 
 void test_game() {
     using namespace quarto;
@@ -32,6 +33,20 @@ void test_game() {
     assert(has_winning_line(b2));
 
     printf("game.hpp tests passed!\n");
+}
+
+void test_parse_message() {
+    using namespace quarto;
+
+    std::string_view parts[10];
+    int n = parse_message("HELLO~server~ext1~ext2", parts, 10);
+    assert(n == 4);
+    assert(parts[0] == "HELLO");
+    assert(parts[1] == "server");
+    assert(parts[2] == "ext1");
+    assert(parts[3] == "ext2");
+
+    printf("parse_message tests passed!\n");
 }
 
 struct Config {
@@ -76,6 +91,7 @@ Config parse_args(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     test_game();
+    test_parse_message();
 
     Config cfg = parse_args(argc, argv);
 
