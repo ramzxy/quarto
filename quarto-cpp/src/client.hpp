@@ -3,6 +3,7 @@
 #include "game.hpp"
 #include "network.hpp"
 #include "choker_joker.hpp"
+#include "search.hpp"
 
 #include <string>
 #include <atomic>
@@ -69,7 +70,7 @@ private:
     std::string opponent_;
 
     // AI engine
-    std::unique_ptr<ChokerJoker> ai_;
+    std::unique_ptr<LazySMP> search_;
 
     // Synchronization for clean shutdown
     std::mutex mutex_;

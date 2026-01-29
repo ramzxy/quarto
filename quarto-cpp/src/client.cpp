@@ -8,7 +8,7 @@ namespace quarto {
 
 GameClient::GameClient(const char* host, int port, const char* username, int threads)
     : host_(host), port_(port), username_(username), num_threads_(threads),
-      ai_(std::make_unique<ChokerJoker>()) {
+      search_(std::make_unique<LazySMP>(threads)) {
 }
 
 GameClient::~GameClient() {
@@ -192,20 +192,20 @@ void GameClient::compute_and_send_move() {
     auto start = std::chrono::steady_clock::now();
 
     int time_budget = 5000;  // 5 seconds per move
-    Move move = ai_->compute_move(board_, current_piece_, time_budget);
+    Move move = search_->search(board_, current_piece_, time_budget);
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start).count();
 
     fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms\n",
             move.square, move.piece, move.score,
-            (unsigned long long)ai_->nodes_searched(), (long long)elapsed);
+            (unsigned long long)search_->total_nodes(), (long long)elapsed);
 
     send_move(move);
 }
 
 void GameClient::compute_and_send_first_move() {
-    int piece = ai_->compute_first_move(board_, 5000);
+    int piece = search_->search_first_move(board_, 5000);
     fprintf(stderr, "AI first move: piece %d\n", piece);
     send_first_move(piece);
 }
