@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fsanitize=address,undefined -Wall -Wextra")
 add_executable(quarto-ai
     src/main.cpp
     src/network.cpp
+    src/client.cpp
     src/choker_joker.cpp
     src/search.cpp
 )

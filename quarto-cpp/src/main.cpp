@@ -6,6 +6,7 @@
 
 #include "game.hpp"
 #include "network.hpp"
+#include "client.hpp"
 
 void test_game() {
     using namespace quarto;
@@ -100,7 +101,13 @@ int main(int argc, char** argv) {
     printf("  Username: %s\n", cfg.username);
     printf("  Threads: %d\n", cfg.threads);
 
-    // TODO: Connect and play
-    printf("Not yet implemented.\n");
+    quarto::GameClient client(cfg.host, cfg.port, cfg.username, cfg.threads);
+
+    if (!client.connect()) {
+        fprintf(stderr, "Failed to connect to server\n");
+        return 1;
+    }
+
+    client.run();
     return 0;
 }
