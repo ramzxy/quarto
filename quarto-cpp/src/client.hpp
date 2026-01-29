@@ -11,6 +11,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <memory>
+#include <map>
+#include <cstdio>
 
 namespace quarto {
 
@@ -27,9 +29,15 @@ enum class ClientState {
 // Forward declaration
 class ChokerJoker;
 
+struct OpponentStats {
+    int wins = 0;
+    int losses = 0;
+    int draws = 0;
+};
+
 class GameClient {
 public:
-    GameClient(const char* host, int port, const char* username, int threads);
+    GameClient(const char* host, int port, const char* username, int threads, bool quiet = false);
     ~GameClient();
 
     bool connect();
@@ -70,9 +78,17 @@ private:
     bool i_am_player1_ = false;
     std::string opponent_;
 
+    // Logging
+    bool quiet_;
+
     // AI engine
     std::unique_ptr<LazySMP> search_;
     std::unique_ptr<TimeManager> time_mgr_;
+    std::map<std::string, OpponentStats> stats_;
+    FILE* log_file_ = nullptr;
+
+    void log_result(const char* result);
+    void print_stats();
 
     // Synchronization for clean shutdown
     std::mutex mutex_;

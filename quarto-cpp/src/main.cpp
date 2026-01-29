@@ -85,6 +85,7 @@ struct Config {
     int port = 12345;
     const char* username = "ChokerJokerCpp";
     int threads = 0;  // 0 = auto-detect
+    bool quiet = false;
 };
 
 void print_usage(const char* prog) {
@@ -94,6 +95,7 @@ void print_usage(const char* prog) {
     printf("  --port <port>     Server port (default: 12345)\n");
     printf("  --username <name> Player username (default: ChokerJokerCpp)\n");
     printf("  --threads <n>     Search threads (default: auto)\n");
+    printf("  --quiet           Only show opponent and result\n");
     printf("  --help            Show this help\n");
 }
 
@@ -108,6 +110,8 @@ Config parse_args(int argc, char** argv) {
             cfg.username = argv[++i];
         } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
             cfg.threads = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--quiet") == 0) {
+            cfg.quiet = true;
         } else if (strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             exit(0);
@@ -132,7 +136,7 @@ int main(int argc, char** argv) {
     printf("  Username: %s\n", cfg.username);
     printf("  Threads: %d\n", cfg.threads);
 
-    quarto::GameClient client(cfg.host, cfg.port, cfg.username, cfg.threads);
+    quarto::GameClient client(cfg.host, cfg.port, cfg.username, cfg.threads, cfg.quiet);
 
     if (!client.connect()) {
         fprintf(stderr, "Failed to connect to server\n");

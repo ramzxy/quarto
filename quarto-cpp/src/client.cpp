@@ -6,12 +6,18 @@
 
 namespace quarto {
 
-GameClient::GameClient(const char* host, int port, const char* username, int threads)
+GameClient::GameClient(const char* host, int port, const char* username, int threads, bool quiet)
     : host_(host), port_(port), username_(username), num_threads_(threads),
-      search_(std::make_unique<LazySMP>(threads)) {
+      quiet_(quiet), search_(std::make_unique<LazySMP>(threads)) {
+    log_file_ = fopen("game_results.log", "a");
+    if (!log_file_) {
+        fprintf(stderr, "Warning: could not open game_results.log for writing\n");
+    }
 }
 
 GameClient::~GameClient() {
+    print_stats();
+    if (log_file_) fclose(log_file_);
     conn_.close();
 }
 
@@ -36,7 +42,8 @@ void GameClient::run() {
 }
 
 void GameClient::handle_message(std::string_view msg) {
-    fprintf(stderr, "[RECV] %.*s\n", (int)msg.size(), msg.data());
+    if (!quiet_)
+        fprintf(stderr, "[RECV] %.*s\n", (int)msg.size(), msg.data());
 
     std::string_view parts[10];
     int count = parse_message(msg, parts, 10);
@@ -69,7 +76,7 @@ void GameClient::on_hello(std::string_view parts[], int count) {
 
 void GameClient::on_login() {
     state_ = ClientState::LOGGED_IN;
-    fprintf(stderr, "Logged in as %s\n", username_.c_str());
+    if (!quiet_) fprintf(stderr, "Logged in as %s\n", username_.c_str());
     send_queue();
 }
 
@@ -89,8 +96,13 @@ void GameClient::on_newgame(std::string_view p1, std::string_view p2) {
     i_am_player1_ = (p1 == username_);
     opponent_ = i_am_player1_ ? std::string(p2) : std::string(p1);
 
-    fprintf(stderr, "Game started vs %s. I am player%d.\n",
-            opponent_.c_str(), i_am_player1_ ? 1 : 2);
+    if (quiet_) {
+        printf("Playing vs %s... ", opponent_.c_str());
+        fflush(stdout);
+    } else {
+        fprintf(stderr, "Game started vs %s. I am player%d.\n",
+                opponent_.c_str(), i_am_player1_ ? 1 : 2);
+    }
 
     if (i_am_player1_) {
         my_turn_ = true;
@@ -105,7 +117,7 @@ void GameClient::on_move(std::string_view parts[], int count) {
         // First move: MOVE~pieceId
         int piece_id = atoi(std::string(parts[1]).c_str());
         current_piece_ = piece_id;
-        fprintf(stderr, "Received first move: piece %d\n", piece_id);
+        if (!quiet_) fprintf(stderr, "Received first move: piece %d\n", piece_id);
         my_turn_ = !my_turn_;
     } else if (count == 3) {
         // Normal move: MOVE~position~pieceId
@@ -118,14 +130,14 @@ void GameClient::on_move(std::string_view parts[], int count) {
         }
 
         if (next_piece == CLAIM_QUARTO) {
-            fprintf(stderr, "Quarto claimed at position %d\n", pos);
+            if (!quiet_) fprintf(stderr, "Quarto claimed at position %d\n", pos);
             return;
         } else if (next_piece == FINAL_PIECE_NO_CLAIM) {
-            fprintf(stderr, "Final piece placed at %d (no win)\n", pos);
+            if (!quiet_) fprintf(stderr, "Final piece placed at %d (no win)\n", pos);
             current_piece_ = -1;
         } else {
             current_piece_ = next_piece;
-            fprintf(stderr, "Piece placed at %d, next piece %d\n", pos, next_piece);
+            if (!quiet_) fprintf(stderr, "Piece placed at %d, next piece %d\n", pos, next_piece);
         }
 
         // Toggle turn: server sends all moves to all players
@@ -140,12 +152,74 @@ void GameClient::on_move(std::string_view parts[], int count) {
 void GameClient::on_gameover(std::string_view parts[], int count) {
     state_ = ClientState::GAME_OVER;
 
+    // Determine result
+    // Determine result
+    const char* result = "UNKNOWN";
     if (count >= 2) {
-        fprintf(stderr, "Game over: %.*s", (int)parts[1].size(), parts[1].data());
-        if (count >= 3) {
-            fprintf(stderr, " - %.*s", (int)parts[2].size(), parts[2].data());
+        std::string_view status = parts[1];
+        
+        if (status == "DRAW") {
+            result = "DRAW";
+            stats_[opponent_].draws++;
+        } else if (status == "VICTORY" || status == "DISCONNECT") {
+            // Format: GAMEOVER~VICTORY~winner or GAMEOVER~DISCONNECT~winner
+            if (count >= 3) {
+                std::string_view winner = parts[2];
+                if (winner == username_) {
+                    result = "WIN";
+                    stats_[opponent_].wins++;
+                } else {
+                    result = "LOSS";
+                    stats_[opponent_].losses++;
+                }
+            } else {
+                 // Fallback if winner parsing fails
+                fprintf(stderr, "Warning: %.*s received without winner.\n", (int)status.size(), status.data());
+            }
+        } else if (status == "WIN") {
+            // Legacy/Fallback support
+            result = "WIN";
+            stats_[opponent_].wins++;
+        } else if (status == "LOSS") {
+            // Legacy/Fallback support
+            result = "LOSS";
+            stats_[opponent_].losses++;
+        } else {
+            // Last resort: try to infer from description
+            std::string_view desc = (count >= 3) ? parts[2] : "";
+            if (desc.find("win") != std::string_view::npos || desc.find("Win") != std::string_view::npos) {
+                result = "WIN";
+                stats_[opponent_].wins++;
+            } else if (desc.find("lose") != std::string_view::npos || desc.find("Lose") != std::string_view::npos) {
+                result = "LOSS";
+                stats_[opponent_].losses++;
+            } else if (desc.find("draw") != std::string_view::npos || desc.find("Draw") != std::string_view::npos) {
+                result = "DRAW";
+                stats_[opponent_].draws++;
+            }
         }
-        fprintf(stderr, "\n");
+    }
+
+    log_result(result);
+
+    if (!quiet_) {
+        if (count >= 2) {
+            fprintf(stderr, "Game over: %.*s", (int)parts[1].size(), parts[1].data());
+            if (count >= 3) {
+                fprintf(stderr, " - %.*s", (int)parts[2].size(), parts[2].data());
+            }
+            fprintf(stderr, "\n");
+        }
+        // Print running stats against this opponent
+        auto& s = stats_[opponent_];
+        fprintf(stderr, "Record vs %s: W:%d L:%d D:%d\n",
+                opponent_.c_str(), s.wins, s.losses, s.draws);
+    } else {
+        printf("%s\n", result);
+        // Print running tally
+        auto& s = stats_[opponent_];
+        printf("  Record vs %s: W:%d L:%d D:%d\n",
+               opponent_.c_str(), s.wins, s.losses, s.draws);
     }
 
     // Re-queue for next game
@@ -169,14 +243,14 @@ void GameClient::send_login() {
 void GameClient::send_queue() {
     state_ = ClientState::IN_QUEUE;
     conn_.send("QUEUE");
-    fprintf(stderr, "Joined queue, waiting for opponent...\n");
+    if (!quiet_) fprintf(stderr, "Joined queue, waiting for opponent...\n");
 }
 
 void GameClient::send_move(const Move& move) {
     char buf[64];
     snprintf(buf, sizeof(buf), "MOVE~%d~%d", move.square, move.piece);
     conn_.send(buf);
-    fprintf(stderr, "[SEND] %s\n", buf);
+    if (!quiet_) fprintf(stderr, "[SEND] %s\n", buf);
     // Don't apply move here — the server echoes it back and on_move handles it
 }
 
@@ -184,7 +258,7 @@ void GameClient::send_first_move(int piece_id) {
     char buf[32];
     snprintf(buf, sizeof(buf), "MOVE~%d", piece_id);
     conn_.send(buf);
-    fprintf(stderr, "[SEND] %s\n", buf);
+    if (!quiet_) fprintf(stderr, "[SEND] %s\n", buf);
     // Don't modify state here — the server echoes it back and on_move handles it
 }
 
@@ -198,7 +272,7 @@ void GameClient::compute_and_send_move() {
         std::chrono::steady_clock::now() - start).count();
     time_mgr_->record_move(elapsed);
 
-    fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms (remaining=%lldms)\n",
+    if (!quiet_) fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms (remaining=%lldms)\n",
             move.square, move.piece, move.score,
             (unsigned long long)search_->total_nodes(), (long long)elapsed,
             (long long)time_mgr_->remaining());
@@ -208,8 +282,34 @@ void GameClient::compute_and_send_move() {
 
 void GameClient::compute_and_send_first_move() {
     int piece = search_->search_first_move(board_, 5000);
-    fprintf(stderr, "AI first move: piece %d\n", piece);
+    if (!quiet_) fprintf(stderr, "AI first move: piece %d\n", piece);
     send_first_move(piece);
+}
+
+void GameClient::log_result(const char* result) {
+    if (log_file_) {
+        fprintf(log_file_, "%s vs %s: %s\n", username_.c_str(), opponent_.c_str(), result);
+        fflush(log_file_);
+    }
+}
+
+void GameClient::print_stats() {
+    if (stats_.empty()) return;
+
+    printf("\n=== Session Stats ===\n");
+    if (log_file_) fprintf(log_file_, "\n=== Session Stats ===\n");
+
+    for (auto& [opp, s] : stats_) {
+        int total = s.wins + s.losses + s.draws;
+        printf("vs %-20s | W:%3d  L:%3d  D:%3d  (Total: %d)\n",
+               opp.c_str(), s.wins, s.losses, s.draws, total);
+        if (log_file_) {
+            fprintf(log_file_, "vs %-20s | W:%3d  L:%3d  D:%3d  (Total: %d)\n",
+                    opp.c_str(), s.wins, s.losses, s.draws, total);
+        }
+    }
+
+    if (log_file_) fflush(log_file_);
 }
 
 } // namespace quarto

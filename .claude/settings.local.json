@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python:*)",
       "Bash(javac:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(tree:*)"
     ]
   }
 }

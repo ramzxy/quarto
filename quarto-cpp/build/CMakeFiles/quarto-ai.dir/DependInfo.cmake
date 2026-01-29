@@ -8,11 +8,12 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/choker_joker.cpp" "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o.d"
-  "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/client.cpp" "CMakeFiles/quarto-ai.dir/src/client.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/client.cpp.o.d"
-  "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/main.cpp" "CMakeFiles/quarto-ai.dir/src/main.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/main.cpp.o.d"
-  "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/network.cpp" "CMakeFiles/quarto-ai.dir/src/network.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/network.cpp.o.d"
-  "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/search.cpp" "CMakeFiles/quarto-ai.dir/src/search.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/search.cpp.o.d"
+  "/home/ilia/quarto/quarto-cpp/src/choker_joker.cpp" "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o.d"
+  "/home/ilia/quarto/quarto-cpp/src/client.cpp" "CMakeFiles/quarto-ai.dir/src/client.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/client.cpp.o.d"
+  "/home/ilia/quarto/quarto-cpp/src/main.cpp" "CMakeFiles/quarto-ai.dir/src/main.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/main.cpp.o.d"
+  "/home/ilia/quarto/quarto-cpp/src/network.cpp" "CMakeFiles/quarto-ai.dir/src/network.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/network.cpp.o.d"
+  "/home/ilia/quarto/quarto-cpp/src/search.cpp" "CMakeFiles/quarto-ai.dir/src/search.cpp.o" "gcc" "CMakeFiles/quarto-ai.dir/src/search.cpp.o.d"
+  "" "quarto-ai" "gcc" "CMakeFiles/quarto-ai.dir/link.d"
   )
 
 # Targets to which this target links which contain Fortran sources.
