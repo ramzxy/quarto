@@ -1,0 +1,7 @@
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/quarto-ai.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/edit_cache.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/rebuild_cache.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/list_install_components.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/install.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/install/local.dir
+/Users/ilia/Uni/mod2/project-109/quarto-cpp/build_release/CMakeFiles/install/strip.dir

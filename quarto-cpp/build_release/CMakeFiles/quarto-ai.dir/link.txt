@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -march=native -flto -DNDEBUG -Wall -Wextra -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names "CMakeFiles/quarto-ai.dir/src/main.cpp.o" "CMakeFiles/quarto-ai.dir/src/network.cpp.o" "CMakeFiles/quarto-ai.dir/src/client.cpp.o" "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o" "CMakeFiles/quarto-ai.dir/src/search.cpp.o" -o quarto-ai

@@ -1736,6 +1736,6 @@ public class ChokerJokerStrategy implements Strategy {
     
     @Override
     public String getName() {
-        return "O2Lock (Constraint-Solver Hybrid)";
+        return "ChokerJoker";
     }
 }

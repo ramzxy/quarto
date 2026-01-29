@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/build",
+  "command": "/usr/bin/c++   -O3 -march=native -flto -DNDEBUG -Wall -Wextra -std=gnu++17 -arch arm64 -o CMakeFiles/quarto-ai.dir/src/main.cpp.o -c /Users/ilia/Uni/mod2/project-109/quarto-cpp/src/main.cpp",
+  "file": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/main.cpp",
+  "output": "CMakeFiles/quarto-ai.dir/src/main.cpp.o"
+},
+{
+  "directory": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/build",
+  "command": "/usr/bin/c++   -O3 -march=native -flto -DNDEBUG -Wall -Wextra -std=gnu++17 -arch arm64 -o CMakeFiles/quarto-ai.dir/src/network.cpp.o -c /Users/ilia/Uni/mod2/project-109/quarto-cpp/src/network.cpp",
+  "file": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/network.cpp",
+  "output": "CMakeFiles/quarto-ai.dir/src/network.cpp.o"
+},
+{
+  "directory": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/build",
+  "command": "/usr/bin/c++   -O3 -march=native -flto -DNDEBUG -Wall -Wextra -std=gnu++17 -arch arm64 -o CMakeFiles/quarto-ai.dir/src/client.cpp.o -c /Users/ilia/Uni/mod2/project-109/quarto-cpp/src/client.cpp",
+  "file": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/client.cpp",
+  "output": "CMakeFiles/quarto-ai.dir/src/client.cpp.o"
+},
+{
+  "directory": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/build",
+  "command": "/usr/bin/c++   -O3 -march=native -flto -DNDEBUG -Wall -Wextra -std=gnu++17 -arch arm64 -o CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o -c /Users/ilia/Uni/mod2/project-109/quarto-cpp/src/choker_joker.cpp",
+  "file": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/choker_joker.cpp",
+  "output": "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o"
+},
+{
+  "directory": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/build",
+  "command": "/usr/bin/c++   -O3 -march=native -flto -DNDEBUG -Wall -Wextra -std=gnu++17 -arch arm64 -o CMakeFiles/quarto-ai.dir/src/search.cpp.o -c /Users/ilia/Uni/mod2/project-109/quarto-cpp/src/search.cpp",
+  "file": "/Users/ilia/Uni/mod2/project-109/quarto-cpp/src/search.cpp",
+  "output": "CMakeFiles/quarto-ai.dir/src/search.cpp.o"
+}
+]
