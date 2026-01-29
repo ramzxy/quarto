@@ -1,5 +1,6 @@
 package Client;
 
+import Client.views.AITUI;
 import Client.views.ClientView;
 import Game.AbstractPlayer;
 import ai.Strategy;
@@ -48,6 +49,24 @@ public class AIGameClient extends GameClient {
     }
 
     @Override
+    public void makeMove(int position, int nextPieceId) {
+        String moveInfo = "Placed at " + position + ", gave piece " + nextPieceId;
+        if (view instanceof AITUI) {
+            ((AITUI) view).showMoveSent(moveInfo);
+        }
+        super.makeMove(position, nextPieceId);
+    }
+
+    @Override
+    public void makeFirstMove(int pieceId) {
+        String moveInfo = "First move, gave piece " + pieceId;
+        if (view instanceof AITUI) {
+            ((AITUI) view).showMoveSent(moveInfo);
+        }
+        super.makeFirstMove(pieceId);
+    }
+
+    @Override
     public void receiveGameOver(String reason, String winner) {
         if (currentOpponentName != null) {
             String result;
@@ -59,6 +78,14 @@ public class AIGameClient extends GameClient {
                 result = "LOSS";
             }
             logResult(currentOpponentName, result);
+            
+            // Show stats
+            if (view instanceof AITUI) {
+                Map<String, int[]> stats = loadStats();
+                int[] record = stats.getOrDefault(currentOpponentName, new int[]{0, 0, 0});
+                ((AITUI) view).showStats(currentOpponentName, record[0], record[1], record[2]);
+            }
+            
             currentOpponentName = null;
         }
         super.receiveGameOver(reason, winner);
@@ -95,7 +122,7 @@ public class AIGameClient extends GameClient {
                 }
             }
         } catch (IOException e) {
-            // Ignore - stats file may not exist yet
+            // Ignore
         }
         return stats;
     }
@@ -107,7 +134,7 @@ public class AIGameClient extends GameClient {
                 writer.println(entry.getKey() + "," + r[0] + "," + r[1] + "," + r[2]);
             }
         } catch (IOException e) {
-            // Ignore - non-critical
+            // Ignore
         }
     }
 }
