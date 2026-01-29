@@ -4,6 +4,7 @@
 #include "network.hpp"
 #include "choker_joker.hpp"
 #include "search.hpp"
+#include "time_manager.hpp"
 
 #include <string>
 #include <atomic>
@@ -71,6 +72,7 @@ private:
 
     // AI engine
     std::unique_ptr<LazySMP> search_;
+    std::unique_ptr<TimeManager> time_mgr_;
 
     // Synchronization for clean shutdown
     std::mutex mutex_;

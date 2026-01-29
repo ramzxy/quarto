@@ -84,6 +84,7 @@ void GameClient::on_newgame(std::string_view p1, std::string_view p2) {
     state_ = ClientState::IN_GAME;
     board_ = BoardState();
     current_piece_ = -1;
+    time_mgr_ = std::make_unique<TimeManager>(120000);  // 2 minute game
 
     i_am_player1_ = (p1 == username_);
     opponent_ = i_am_player1_ ? std::string(p2) : std::string(p1);
@@ -191,15 +192,17 @@ void GameClient::send_first_move(int piece_id) {
 void GameClient::compute_and_send_move() {
     auto start = std::chrono::steady_clock::now();
 
-    int time_budget = 5000;  // 5 seconds per move
-    Move move = search_->search(board_, current_piece_, time_budget);
+    int64_t time_budget = time_mgr_->allocate(board_.empty_count());
+    Move move = search_->search(board_, current_piece_, (int)time_budget);
 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start).count();
+    time_mgr_->record_move(elapsed);
 
-    fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms\n",
+    fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms (remaining=%lldms)\n",
             move.square, move.piece, move.score,
-            (unsigned long long)search_->total_nodes(), (long long)elapsed);
+            (unsigned long long)search_->total_nodes(), (long long)elapsed,
+            (long long)time_mgr_->remaining());
 
     send_move(move);
 }
