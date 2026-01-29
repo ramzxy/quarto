@@ -7,7 +7,8 @@
 namespace quarto {
 
 GameClient::GameClient(const char* host, int port, const char* username, int threads)
-    : host_(host), port_(port), username_(username), num_threads_(threads) {
+    : host_(host), port_(port), username_(username), num_threads_(threads),
+      ai_(std::make_unique<ChokerJoker>()) {
 }
 
 GameClient::~GameClient() {
@@ -188,36 +189,25 @@ void GameClient::send_first_move(int piece_id) {
 }
 
 void GameClient::compute_and_send_move() {
-    // TODO: Use ChokerJoker AI
-    // For now, play randomly
+    auto start = std::chrono::steady_clock::now();
 
-    // Find first empty square
-    int square = -1;
-    uint16_t empty = ~board_.occupied;
-    if (empty) {
-        square = ctz(empty);
-    }
+    int time_budget = 5000;  // 5 seconds per move
+    Move move = ai_->compute_move(board_, current_piece_, time_budget);
 
-    // Check for winning move
-    if (current_piece_ >= 0 && is_winning_move(board_, square, current_piece_)) {
-        send_move(Move(square, CLAIM_QUARTO));
-        return;
-    }
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
 
-    // Find first available piece (or FINAL_PIECE_NO_CLAIM)
-    int next_piece = FINAL_PIECE_NO_CLAIM;
-    uint16_t avail = board_.available & ~(1u << current_piece_);
-    if (avail) {
-        next_piece = ctz(avail);
-    }
+    fprintf(stderr, "AI: sq=%d piece=%d score=%d nodes=%llu time=%lldms\n",
+            move.square, move.piece, move.score,
+            (unsigned long long)ai_->nodes_searched(), (long long)elapsed);
 
-    send_move(Move(square, next_piece));
+    send_move(move);
 }
 
 void GameClient::compute_and_send_first_move() {
-    // TODO: Use ChokerJoker AI
-    // For now, give piece 0
-    send_first_move(0);
+    int piece = ai_->compute_first_move(board_, 5000);
+    fprintf(stderr, "AI first move: piece %d\n", piece);
+    send_first_move(piece);
 }
 
 } // namespace quarto

@@ -2,11 +2,13 @@
 
 #include "game.hpp"
 #include "network.hpp"
+#include "choker_joker.hpp"
 
 #include <string>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <memory>
 
 namespace quarto {
 
@@ -66,8 +68,8 @@ private:
     bool i_am_player1_ = false;
     std::string opponent_;
 
-    // AI engine (to be implemented)
-    // std::unique_ptr<ChokerJoker> ai_;
+    // AI engine
+    std::unique_ptr<ChokerJoker> ai_;
 
     // Synchronization for clean shutdown
     std::mutex mutex_;
