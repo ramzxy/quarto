@@ -7,6 +7,7 @@
 #include "game.hpp"
 #include "network.hpp"
 #include "client.hpp"
+#include "tt.hpp"
 
 void test_game() {
     using namespace quarto;
@@ -48,6 +49,35 @@ void test_parse_message() {
     assert(parts[3] == "ext2");
 
     printf("parse_message tests passed!\n");
+}
+
+void test_zobrist() {
+    using namespace quarto;
+
+    Zobrist::init();
+    Symmetry::init();
+
+    BoardState b;
+    uint64_t h1 = Zobrist::hash(b);
+    assert(h1 == 0);  // Empty board
+
+    place_piece(b, 0, 5);
+    uint64_t h2 = Zobrist::hash(b);
+    assert(h2 != 0);
+
+    // Incremental update should match full recompute
+    uint64_t h3 = Zobrist::update(0, 0, 5);
+    assert(h2 == h3);
+
+    // Test symmetry: piece at (0,0) should hash same as piece at (3,3) under 180 rotation
+    BoardState b1, b2;
+    place_piece(b1, 0, 5);
+    place_piece(b2, 15, 5);
+    uint64_t ch1 = Symmetry::canonical_hash(b1, -1);
+    uint64_t ch2 = Symmetry::canonical_hash(b2, -1);
+    assert(ch1 == ch2);
+
+    printf("Zobrist & symmetry tests passed!\n");
 }
 
 struct Config {
@@ -93,6 +123,7 @@ Config parse_args(int argc, char** argv) {
 int main(int argc, char** argv) {
     test_game();
     test_parse_message();
+    test_zobrist();
 
     Config cfg = parse_args(argc, argv);
 
