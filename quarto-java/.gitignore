@@ -1,0 +1,20 @@
+# IDEs
+/.idea/
+/out/
+/bin/
+/.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Gradle
+/.gradle/
+/build/
+
+# Logs
+log.txt
+*.log
+
+# Mac
+.DS_Store
