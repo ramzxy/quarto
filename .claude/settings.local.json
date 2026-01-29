@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(javac:*)"
+      "Bash(javac:*)",
+      "Bash(make:*)"
     ]
   }
 }

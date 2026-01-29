@@ -106,30 +106,35 @@ void GameClient::on_move(std::string_view parts[], int count) {
         int piece_id = atoi(std::string(parts[1]).c_str());
         current_piece_ = piece_id;
         fprintf(stderr, "Received first move: piece %d\n", piece_id);
+        my_turn_ = !my_turn_;
     } else if (count == 3) {
         // Normal move: MOVE~position~pieceId
         int pos = atoi(std::string(parts[1]).c_str());
         int next_piece = atoi(std::string(parts[2]).c_str());
 
-        // Apply opponent's move
+        // Apply the move (whether it's our echo or opponent's move)
         if (current_piece_ >= 0) {
             place_piece(board_, pos, current_piece_);
         }
 
         if (next_piece == CLAIM_QUARTO) {
-            fprintf(stderr, "Opponent claimed Quarto at position %d\n", pos);
+            fprintf(stderr, "Quarto claimed at position %d\n", pos);
             return;
         } else if (next_piece == FINAL_PIECE_NO_CLAIM) {
-            fprintf(stderr, "Opponent placed final piece at %d (no win)\n", pos);
+            fprintf(stderr, "Final piece placed at %d (no win)\n", pos);
             current_piece_ = -1;
         } else {
             current_piece_ = next_piece;
-            fprintf(stderr, "Opponent placed at %d, gave piece %d\n", pos, next_piece);
+            fprintf(stderr, "Piece placed at %d, next piece %d\n", pos, next_piece);
         }
+
+        // Toggle turn: server sends all moves to all players
+        my_turn_ = !my_turn_;
     }
 
-    my_turn_ = true;
-    compute_and_send_move();
+    if (my_turn_) {
+        compute_and_send_move();
+    }
 }
 
 void GameClient::on_gameover(std::string_view parts[], int count) {
@@ -172,13 +177,7 @@ void GameClient::send_move(const Move& move) {
     snprintf(buf, sizeof(buf), "MOVE~%d~%d", move.square, move.piece);
     conn_.send(buf);
     fprintf(stderr, "[SEND] %s\n", buf);
-
-    // Apply our own move
-    if (current_piece_ >= 0) {
-        place_piece(board_, move.square, current_piece_);
-    }
-    current_piece_ = -1;
-    my_turn_ = false;
+    // Don't apply move here — the server echoes it back and on_move handles it
 }
 
 void GameClient::send_first_move(int piece_id) {
@@ -186,7 +185,7 @@ void GameClient::send_first_move(int piece_id) {
     snprintf(buf, sizeof(buf), "MOVE~%d", piece_id);
     conn_.send(buf);
     fprintf(stderr, "[SEND] %s\n", buf);
-    my_turn_ = false;
+    // Don't modify state here — the server echoes it back and on_move handles it
 }
 
 void GameClient::compute_and_send_move() {

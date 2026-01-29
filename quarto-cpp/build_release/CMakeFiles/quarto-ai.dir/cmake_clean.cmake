@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/quarto-ai.dir/link.d"
   "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o"
   "CMakeFiles/quarto-ai.dir/src/choker_joker.cpp.o.d"
   "CMakeFiles/quarto-ai.dir/src/client.cpp.o"
