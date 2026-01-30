@@ -13,11 +13,6 @@ import Game.Move;
 import Game.Piece;
 import Protocol.PROTOCOL;
 
-/**
- * Unified God Engine strategy with Strangler heuristic at leaf nodes.
- * Always uses iterative deepening alpha-beta with PVS, LMR, aspiration windows,
- * and dynamic time allocation based on game phase.
- */
 public class ChokerJokerStrategy implements Strategy {
 
     // ==================== GLOBAL BIT CONSTANTS (Server Protocol) ====================

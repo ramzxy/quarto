@@ -1,9 +1,0 @@
-dummy,13,0,0
-joe,1,0,0
-Easy,1,0,0
-Weird AI Yankovic,7,1,1
-ana,1,0,0
-Easy1,1,0,0
-Hard,1,0,0
-bobbb,65,69,4
-ai-nil,4,0,1

@@ -18,3 +18,11 @@ log.txt
 
 # Mac
 .DS_Store
+
+.claude/
+
+# Build artifacts
+quarto-cpp/build/
+quarto-cpp/build_release/
+simulations/build/
+simulations/results/
