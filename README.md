@@ -1,4 +1,4 @@
-# ChokerJoker — A Quarto AI Engine
+# ChokerJoker, A Quarto AI Engine
 
 ChokerJoker is a game-playing engine for [Quarto](https://en.wikipedia.org/wiki/Quarto_(board_game)), a two-player strategy game played on a 4x4 board with 16 unique pieces. Each piece has four binary attributes (dark/light, tall/short, round/square, solid/hollow), and a player wins by completing a line of four pieces that share at least one attribute.
 
