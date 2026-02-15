@@ -2,7 +2,6 @@
 
 ChokerJoker is a game-playing engine for [Quarto](https://en.wikipedia.org/wiki/Quarto_(board_game)), a two-player strategy game played on a 4x4 board with 16 unique pieces. Each piece has four binary attributes (dark/light, tall/short, round/square, solid/hollow), and a player wins by completing a line of four pieces that share at least one attribute.
 
-The key twist of Quarto: **you don't choose which piece to place — your opponent does.** This makes the game fundamentally about constraining your opponent's options.
 
 ## The Strategy
 
